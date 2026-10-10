@@ -58,9 +58,9 @@
 | peer 下限 | 下限取**实际审计过的最低宿主版本**，即 `0.2.0-rc.2`。caret 上界带 `-0`（`^0.2.0-rc.2` → `>=0.2.0-rc.2 <0.3.0-0`），故覆盖 `0.2.0-rc.2`、`0.2.0`、`0.2.1-alpha.1`；`0.2.0-rc.1` 落在范围外是**有意决定**（未审计过，不替它背书），停在 rc.1 的宿主收到 `incompatible-version` 是正确可执行的信号。同理四条 0.1.x 段永远匹配不到 0.2.0 预发布（`^0.1.7-alpha.1` → `<0.2.0-0`，而 `0.2.0-rc.2 > 0.2.0-0`） |
 | 被否掉的方案 | 把追加段写成 `^0.2.0-rc.1`（`>=0.2.0-rc.1 <0.3.0-0`，是 rc.2 段的严格超集，可顺带放行 rc.1）。**否掉**：semver 上它更宽，但它替一个从未审计过的宿主背书，换来的只是少提醒一批用户升一个 nightly。合并时丢弃实现方为此提交的 `b2db1cd`，只取其测试脚本 |
 | 类型基线 | 宿主源码 worktree `/Users/smallmj/deepseek-harness-0.2.0`（tag `dsh-v0.2.0-rc.2`）已建，类型对齐真实运行版本 |
-| 发布路径 | **fork 自发布 + 同时给上游 `fandc520/dsh-comfyui` 提 PR**（npm 发布权在上游作者手里，自发布需改名） |
+| 发布路径 | ~~fork 自发布 + 同时给上游提 PR~~ → **放弃自发布**（npm 发布权在上游作者，fork 只能用 `@smallmj-` 前缀名，还要 npm 登录 + 上架审核）。改名保留为**本地安装的寻址名**，日常使用走本地装机 |
 | 包名 | 本 fork 发布为 **`@smallmj/dsh-comfyui`**（scoped，npm 上未被占用），`publishConfig.registry` 锁 `registry.npmjs.org`（本机 `~/.npmrc` 指向 npmmirror 镜像，镜像不接受发布）。**只改 npm 包名，不改运行时标识**：`src/index.ts:28` 的 `export const name = 'dsh-comfyui'`、数据目录 `data/dsh-comfyui`、预设包格式标识 `dsh-comfyui-workflow-preset` 全部保持——它们决定用户已有数据与已导出预设的位置和可读性，改了等于给用户换址。fork 包从 0.5.5 起独立计数，**没有** `beta` tag；老宿主（dsh 0.1.1）仍走上游 `dsh-comfyui@beta` |
-| 安装方式 | 走 **dshmarket** 安装 |
+| 安装方式 | **本地装机**（写进 desktop profile 的 `package.json` + `dsh.profile.bundles`，`pnpm install`，见 `docs/ACCEPTANCE-0.2.0.md` 路线 A）。不走 dshmarket 安装 |
 | 验证 | 复用现有 4 个离线自测（`scripts/test-convert.mjs`、`test-skillpack.mjs`、`test-store-params.mjs`、`test-transfer.mjs`，均需先 `npm run build`）**+ 新增一个加载冒烟测试** |
 | 范围 | **只修兼容，不采纳 0.2.0 新能力** —— 审计没有发现接缝破坏，也没有新特性需要采纳 |
 | 豁免 | **不采用** `dsh plugin allow-version` —— 每次宿主升级都要重豁免，是绕过不是适配 |
@@ -73,8 +73,8 @@
 | 2 | `version` 0.5.4 → 0.5.5；`repository.url` 指向 fork | ✅ 已完成 |
 | 3 | `npm install && npm run typecheck && npm run build` + 4 个离线自测 | ✅ typecheck 与 `build:host` 在 `dsh-settings@0.2.0-rc.2` 类型上通过；`test-convert` / `test-skillpack` / `test-store-params` / `test-transfer` 全部 exit 0 |
 | 4 | 加载冒烟接缝：`scripts/test-host-compat.mjs` —— 桩宿主上下文驱动 `apply(ctx, entryConfig)`，断言注册行为；同脚本内折叠 peer 闸门静态断言（与宿主一致的预发布语义） | ✅ 已完成，25 条断言 exit 0。运行：`npm run build:host && node scripts/test-host-compat.mjs`。桩证明的是鸭子类型边界契约，以下须由真实宿主证明：cordis inject 时序与销毁顺序、真实 fiber 语义、活体 ComfyUI WebSocket 重连、设置页真实渲染与 HTTP 路由服务、宿主自己的闸门代码路径 |
-| 5 | 真实宿主 + 真实 ComfyUI 手工验收：装机 → 启动 → 断言工具注册 → 跑一次真实出图。**不进自动化** | ⬜ 未开始。验收清单已就绪：`docs/ACCEPTANCE-0.2.0.md`；tarball 已打好 `smallmj-dsh-comfyui-0.5.5.tgz`（宿主插件管理器接受 tarball / 本机绝对路径安装，**不发布也能装机验收**） |
-| 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ⬜ 未开始。**改名已完成**（`@smallmj/dsh-comfyui`，见决策表「包名」）。剩余两道闸门：本机 npm 未登录 `registry.npmjs.org`（`npm whoami` 报 `ENEEDAUTH`）；GitHub 网络不通（推送与 PR 都堵） |
+| 5 | 真实宿主 + 真实 ComfyUI 手工验收：装机 → 启动 → 断言工具注册 → 跑一次真实出图。**不进自动化** | 🟡 **装机已完成**（写进 desktop profile，`node_modules/@smallmj/dsh-comfyui` 就位，包内 peer 含 `^0.2.0-rc.2`，宿主 asar 的 `dsh-settings` 是 `0.2.0-rc.2`）。**待重启应用**后按 `docs/ACCEPTANCE-0.2.0.md` 跑第 1/2/3 层 |
+| 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ❌ **放弃自发布**（维护者决定，见决策表「发布路径」）。改名保留为本地安装寻址名；`AWESOME.md` 条目留作未提交的上架材料。给上游提 PR 一事由 PR #14 覆盖（见「与上游 PR #14 的对比」） |
 | 7 | 发版同步义务（`CLAUDE.md` §相关文档）：两份 README 版本配对表已同步；`src/skill.ts` 不含版本与宿主兼容表述，无需改动；`DEVELOPMENT.md` 版本表与时间线是本地文件，不入版本库 | ✅ 部分完成（DEVELOPMENT.md 由维护者本地更新） |
 | 8 | 采纳上游 PR #14 的后台任务 owner 修复（`jobsOwner`）+ 删除 `dsh.client.inject` 里的死引用 `@deepseek-ai/dsh-client-runtime` | ✅ 已完成（见「与上游 PR #14 的对比」）。`src/tools.ts` 取 PR #14 版本，CLAUDE.md 契约 16 记录契约分叉 |
 

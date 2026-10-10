@@ -4,14 +4,21 @@
 
 前置：ComfyUI 在跑（默认 `http://127.0.0.1:8188`），DSH 桌面应用已启动。
 
-## 路线 A：本地 tarball 装机（不需要发布，推荐先跑这条）
+## 路线 A：本地装机（已执行，不需要发布）
 
-插件包已打好：`/Users/smallmj/My Projects/dsh-comfyui/smallmj-dsh-comfyui-0.5.5.tgz`（3.2MB，50 文件）。
-宿主侧插件管理器接受四种安装 spec：**registry 包名 / git 地址 / tarball / 本机绝对路径**（`dsh-plugin-manager`），所以不发布也能装机验收。
+插件包：`/Users/smallmj/My Projects/dsh-comfyui/smallmj-dsh-comfyui-0.5.5.tgz`（3.2MB，50 文件）。宿主插件管理器接受四种安装 spec：**registry 包名 / git 地址 / tarball / 本机绝对路径**（`dsh-plugin-manager`），所以不发布也能装机验收。
 
-1. 侧边栏 → **Plugins** 页 → 安装（Install）→ 在 spec 输入框填 tarball 的绝对路径：
-   `/Users/smallmj/My Projects/dsh-comfyui/smallmj-dsh-comfyui-0.5.5.tgz`
-2. 安装完成后**重启应用**（host 侧代码要重启才生效；client 侧只需刷新页面）。
+**已按 profile 的装配约定手工装好**（桌面 profile 由 Electron 应用独占管理，`dsh plugin --profile desktop add` 命令行被拒，UI 与手工写入等价）：
+
+1. `~/.dsh/profiles/desktop/package.json` → `dependencies["@smallmj/dsh-comfyui"] = "file:<tarball 绝对路径>"`，并在 `dsh.profile.bundles` 追加同名条目（插件自带 `cordis.patch.yml` 负责把 `id: comfyui` 插进层栈，**profile 的 `cordis.patch.yml` 不需要动**——现有插件条目都不写在那里）
+2. `cd ~/.dsh/profiles/desktop && pnpm install`（`nodeLinker: hoisted`，装完落在 `node_modules/@smallmj/dsh-comfyui`；`file:` spec 不受 `minimumReleaseAge` 门限约束，无需 `minimumReleaseAgeExclude`）
+3. **重启应用**（host 侧代码要重启才生效；client 侧只需刷新页面）
+
+回滚：装机前留了三份备份 `~/.dsh/profiles/desktop/{package.json,pnpm-lock.yaml,pnpm-workspace.yaml}.bak.20261010_123319.pre-smallmj-comfyui`，还原后 `pnpm install` 即可。
+
+> 走 UI 的等价做法：侧边栏 → **Plugins** 页 → 安装 → spec 填上面那个 tarball 路径。两条路结果一致，UI 会自己写这三处。
+
+已核对：`node_modules/@smallmj/dsh-comfyui/{lib/index.js,client/client.js,cordis.patch.yml}` 齐全，包内 `package.json` 是 `@smallmj/dsh-comfyui@0.5.5` 且 peer 含 `^0.2.0-rc.2`；宿主 asar 里的 `@deepseek-ai/dsh-settings` 是 `0.2.0-rc.2`（闸门比对的即此版本）；运行时依赖 `@deepseek-ai/schemastery@3.18.4`、`fflate@0.8.3` 已落位；历史数据目录 `~/.dsh/data/dsh-comfyui/` 原样保留。
 
 ### 第 1 层 · 安装兼容
 
@@ -55,9 +62,9 @@ node scripts/run-16x9.mjs        # 默认打 http://127.0.0.1:3080
 node scripts/run-cg-portrait.mjs
 ```
 
-## 路线 B：dshmarket 安装（发布后）
+## 路线 B：dshmarket 安装（发布后）—— **已放弃，仅留作参考**
 
-前置三件事，缺一不可：
+维护者决定不自发布（npm 发布权在上游作者，fork 只能用 `@smallmj-` 前缀名，且需要 npm 登录与上架审核）。日常使用走路线 A 的本地装机。下面三条若将来要发布，缺一不可：
 
 1. **npm 登录**：本机 `~/.npmrc` 的 registry 指向 npmmirror 镜像，镜像不接受发布；`package.json` 已用 `publishConfig.registry` 锁 `https://registry.npmjs.org`。需要先跑 `npm adduser --registry=https://registry.npmjs.org`（当前状态：`npm whoami` 报 `ENEEDAUTH`）。
 2. **发布**：`npm publish`（`prepack` 会自动 build）。验证：`npm view @smallmj/dsh-comfyui version --registry=https://registry.npmjs.org`。
@@ -80,8 +87,8 @@ plutil -p "/Applications/DeepSeek Harness.app/Contents/Info.plist" | grep CFBund
 - 设置页/面板哪一项没出现
 - 生成失败时 Agent 的报错原文（不要贴完整工作流 JSON）
 
-## 发布后的同步义务（CLAUDE.md 规定）
+## 同步义务（CLAUDE.md 规定）
 
-- `DEVELOPMENT.md` 的版本表与时间线 —— **该文件在本机不存在**（gitignored，clone 拿不到），发版时需新建
-- `AWESOME.md` 条目改写成新包名
-- 两份 README 的「0.5.5 起」措辞在 0.5.5 真正发布后才成立
+- `DEVELOPMENT.md` 的版本表与时间线 —— **该文件在本机不存在**（gitignored，clone 拿不到），需要时新建
+- `AWESOME.md` 条目已按新包名 `@smallmj/dsh-comfyui` 改写；因放弃自发布，该文件目前是**未提交的上架材料**，不产生动作
+- 两份 README 的「0.5.5 起」是仓库内的版本陈述；npm 首页不发布就不生效，安装说明以路线 A 的本地装机为准
