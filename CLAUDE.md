@@ -153,6 +153,9 @@ Agent ──tools──┐
 
 16. **后台任务的 `owner` 按宿主代际分叉**：`JobSpec.owner` 在 `@deepseek-ai/dsh-jobs` 0.1.2–0.1.6 是 `Agent` 句柄，**0.1.7 起改成 `SessionId`**（0.1.7-alpha.1 的 `types.d.ts:128`、0.2.0 的 `packages/jobs/jobs/src/types.ts:137`）。`jobs-local` 的 `resolveOwner` 拿它当 session id 去 `agents.get(...)`，传句柄就抛 `session "[object Object]" has no live agent`——即 0.1.7+ 宿主上 `mode:"async"`（契约 5 要求视频/音频必用）会直接失败。修法在 `src/tools.ts` 的 `jobsOwner()`：用 **`jobs.readAt` 是否存在**做特征探测（`readAt` 与 owner 改 SessionId 同批引入，0.1.6 无、0.1.7 起有），新宿主传 `agent.id`（`Agent.id` 就是 SessionId），老宿主传句柄，全版本兼容，不做版本号判断。取自上游 PR #14（作者 `164105419`）。
 
+17. **`cordis.patch.yml` 里的 `name` 是模块说明符，必须等于本包的 npm 包名**：cordis 加载器 `PluginEntry._init()` 执行 `tree.import(this.options.name)`，`name` 就是要 import 的包名；插件自身 `export const name` 只是插件身份（决定数据目录等），两者不是一回事。fork 把包改名成 `@smallmj/dsh-comfyui` 后，patch 里残留的 `name: 'dsh-comfyui'` 会让 bundle 层正常组合、模块却 import 不到（profile 里只有 `@smallmj/dsh-comfyui`，`require.resolve('dsh-comfyui')` → `MODULE_NOT_FOUND`），dshmarket 侧的表现是「已进入 profile bundle 层但本次未能热挂载；重启后生效」，且**重启也不会好**。加载失败只在 host 日志里留一行 error，UI 上看不出原因。改包名必须同步改这里。
+
+
 ## 代码风格约定
 
 - ESM + NodeNext：host 侧相对导入**必须带 `.js` 后缀**（`./store.js`）。客户端侧由打包器解析，现有代码 `.ts` / `.tsx`（`allowImportingTsExtensions`）与 `.js` 后缀混用（如 `./lightbox.js`），两种都能构建，改动时跟随所在文件的写法即可。

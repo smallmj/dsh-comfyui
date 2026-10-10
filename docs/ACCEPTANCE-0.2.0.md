@@ -18,6 +18,10 @@
 
 > 走 UI 的等价做法：侧边栏 → **Plugins** 页 → 安装 → spec 填上面那个 tarball 路径。两条路结果一致，UI 会自己写这三处。
 
+**第一次重启后未挂载（已修复）**：装机 + 重启后 dshmarket 持续提示「已进入 profile bundle 层但本次未能热挂载；重启后生效」，`/comfyui/*` 全 404。根因是插件自带 `cordis.patch.yml` 里的 `name` 是 cordis 加载器要 import 的**模块说明符**，改名后残留的 `dsh-comfyui` 在 profile 里解析不到（peer 闸门本身是过的：宿主 `loadProfileDirectory` 复现 = 22 层 0 skipped）。修法与排查全过程见 `docs/DSH-0.2.0-COMPAT.md` §装机后未挂载 与 CLAUDE.md 契约 17。
+
+重装新 tarball 时的 pnpm 陷阱：`file:` 依赖的 integrity 被 profile 的 `pnpm-lock.yaml` 钉住，`pnpm install --force` 与 `pnpm install --lockfile-only` + `pnpm install` **都装出旧内容**。有效做法：从 profile 的 `package.json` 删掉该依赖 → `pnpm install` → 原样加回 → `pnpm install`，然后核对 `node_modules/@smallmj/dsh-comfyui/cordis.patch.yml` 的内容。
+
 已核对：`node_modules/@smallmj/dsh-comfyui/{lib/index.js,client/client.js,cordis.patch.yml}` 齐全，包内 `package.json` 是 `@smallmj/dsh-comfyui@0.5.5` 且 peer 含 `^0.2.0-rc.2`；宿主 asar 里的 `@deepseek-ai/dsh-settings` 是 `0.2.0-rc.2`（闸门比对的即此版本）；运行时依赖 `@deepseek-ai/schemastery@3.18.4`、`fflate@0.8.3` 已落位；历史数据目录 `~/.dsh/data/dsh-comfyui/` 原样保留。
 
 ### 第 1 层 · 安装兼容

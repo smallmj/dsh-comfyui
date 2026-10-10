@@ -1,4 +1,7 @@
 # dsh-comfyui bundle patch: inserts the plugin into a profile's layer stack.
+# `name` is the module specifier the cordis loader imports (PluginEntry._init
+# calls tree.import(options.name)), so it must be this package's npm name — not
+# the plugin's exported `name`, which keeps the data dir and preset identity.
 - insert:
     - id: comfyui
-      name: 'dsh-comfyui'
+      name: '@smallmj/dsh-comfyui'

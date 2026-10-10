@@ -59,7 +59,7 @@
 | 被否掉的方案 | 把追加段写成 `^0.2.0-rc.1`（`>=0.2.0-rc.1 <0.3.0-0`，是 rc.2 段的严格超集，可顺带放行 rc.1）。**否掉**：semver 上它更宽，但它替一个从未审计过的宿主背书，换来的只是少提醒一批用户升一个 nightly。合并时丢弃实现方为此提交的 `b2db1cd`，只取其测试脚本 |
 | 类型基线 | 宿主源码 worktree `/Users/smallmj/deepseek-harness-0.2.0`（tag `dsh-v0.2.0-rc.2`）已建，类型对齐真实运行版本 |
 | 发布路径 | ~~fork 自发布 + 同时给上游提 PR~~ → **放弃自发布**（npm 发布权在上游作者，fork 只能用 `@smallmj-` 前缀名，还要 npm 登录 + 上架审核）。改名保留为**本地安装的寻址名**，日常使用走本地装机 |
-| 包名 | 本 fork 发布为 **`@smallmj/dsh-comfyui`**（scoped，npm 上未被占用），`publishConfig.registry` 锁 `registry.npmjs.org`（本机 `~/.npmrc` 指向 npmmirror 镜像，镜像不接受发布）。**只改 npm 包名，不改运行时标识**：`src/index.ts:28` 的 `export const name = 'dsh-comfyui'`、数据目录 `data/dsh-comfyui`、预设包格式标识 `dsh-comfyui-workflow-preset` 全部保持——它们决定用户已有数据与已导出预设的位置和可读性，改了等于给用户换址。fork 包从 0.5.5 起独立计数，**没有** `beta` tag；老宿主（dsh 0.1.1）仍走上游 `dsh-comfyui@beta` |
+| 包名 | 本 fork 发布为 **`@smallmj/dsh-comfyui`**（scoped，npm 上未被占用），`publishConfig.registry` 锁 `registry.npmjs.org`（本机 `~/.npmrc` 指向 npmmirror 镜像，镜像不接受发布）。**只改 npm 包名，不改运行时标识**：`src/index.ts:28` 的 `export const name = 'dsh-comfyui'`、数据目录 `data/dsh-comfyui`、预设包格式标识 `dsh-comfyui-workflow-preset` 全部保持——它们决定用户已有数据与已导出预设的位置和可读性，改了等于给用户换址。fork 包从 0.5.5 起独立计数，**没有** `beta` tag；老宿主（dsh 0.1.1）仍走上游 `dsh-comfyui@beta`。**这条判断当时漏了一处**：`cordis.patch.yml` 的 `name` 不是运行时标识，而是 cordis 加载器要 import 的**模块说明符**（`PluginEntry._init()` → `tree.import(this.options.name)`），必须跟着包名一起改，见「装机后未挂载」一节 |
 | 安装方式 | **本地装机**（写进 desktop profile 的 `package.json` + `dsh.profile.bundles`，`pnpm install`，见 `docs/ACCEPTANCE-0.2.0.md` 路线 A）。不走 dshmarket 安装 |
 | 验证 | 复用现有 4 个离线自测（`scripts/test-convert.mjs`、`test-skillpack.mjs`、`test-store-params.mjs`、`test-transfer.mjs`，均需先 `npm run build`）**+ 新增一个加载冒烟测试** |
 | 范围 | **只修兼容，不采纳 0.2.0 新能力** —— 审计没有发现接缝破坏，也没有新特性需要采纳 |
@@ -77,6 +77,7 @@
 | 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ❌ **放弃自发布**（维护者决定，见决策表「发布路径」）。改名保留为本地安装寻址名；`AWESOME.md` 条目留作未提交的上架材料。给上游提 PR 一事由 PR #14 覆盖（见「与上游 PR #14 的对比」） |
 | 7 | 发版同步义务（`CLAUDE.md` §相关文档）：两份 README 版本配对表已同步；`src/skill.ts` 不含版本与宿主兼容表述，无需改动；`DEVELOPMENT.md` 版本表与时间线是本地文件，不入版本库 | ✅ 部分完成（DEVELOPMENT.md 由维护者本地更新） |
 | 8 | 采纳上游 PR #14 的后台任务 owner 修复（`jobsOwner`）+ 删除 `dsh.client.inject` 里的死引用 `@deepseek-ai/dsh-client-runtime` | ✅ 已完成（见「与上游 PR #14 的对比」）。`src/tools.ts` 取 PR #14 版本，CLAUDE.md 契约 16 记录契约分叉 |
+| 9 | 装机后插件未挂载（dshmarket 提示「已进入 profile bundle 层但本次未能热挂载」） | ✅ 已修复：`cordis.patch.yml` 的 `name` 改为 `@smallmj/dsh-comfyui`（它是加载器要 import 的模块说明符）。见「装机后未挂载」一节与 CLAUDE.md 契约 17 |
 
 **「排除的三个怀疑」一节中的三项**不得作为「修复」对象 —— 实测无害，改动只会引入风险。
 
@@ -108,6 +109,20 @@
 
 这条正是离线审计到不了的「功能兼容」层：桩宿主能证明注册接缝，证明不了 jobs 语义。**结论：两条分支互补** —— 本分支强在审计/类型基线/接缝/文档，PR #14 强在真机端到端与这个功能修复。
 
+
+## 装机后未挂载：`cordis.patch.yml` 的 `name` 是模块说明符
+
+**症状**（装机 + 重启后）：dshmarket 持续提示「已进入 profile bundle 层但本次未能热挂载；重启后生效」，`/comfyui/*` 路由 404，设置页无 ComfyUI 节。**重启不会好**。
+
+排查顺序与实测结论：
+
+1. **peer 闸门是过的**。宿主 `evaluatePluginCompatibility`（`dsh-app-boot/lib/index.js:286`）只检查 `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` 这几个 peer，对 `getDshRuntimeVersion()`（同文件 :271，= app-boot 自身版本 = 装机版本）用 `{includePrerelease:true}` 比较；被跳过的 bundle 会进 `skippedBundles` 并由 `reportSkippedBundles`（:515）打 `dsh: skipping profile bundle "<name>": <reason>` 到 stderr。用宿主自己的导出函数复现：`loadProfileDirectory("dsh", ~/.dsh/profiles/desktop, <app>/package.json, {userLayer:false})` → **22 层，0 skipped**，我们的层在栈里，`patchPaths` 指向安装目录里的 `cordis.patch.yml`。
+2. **真正断在模块解析**。cordis 加载器 `PluginEntry._init()`（`cordis-plugin-loader/lib/index.js:451`）执行 `exports = await this.parent.tree.import(this.options.name, ...)` —— 条目里的 `name` 就是要 import 的**包名**；失败只 `ctx.logger.error(error)` 后 `return`（:452-454），插件永不启动，UI 上就是那条热挂载提示。实测：在 profile 目录里 `require.resolve('dsh-comfyui')` → `MODULE_NOT_FOUND`，`require.resolve('@smallmj/dsh-comfyui')` → 正常解析。
+3. 所以 fork 改名后 patch 里残留的 `name: 'dsh-comfyui'` 让「层组合成功、模块 import 失败」。修法：`cordis.patch.yml` 的 `name` 改成 `@smallmj/dsh-comfyui`。**插件导出的 `name`（`src/index.ts:28`）保持 `dsh-comfyui` 不变** —— 那个才是插件身份（数据目录等），与条目的 `name` 不是一回事。
+
+**装机侧的 pnpm 陷阱**（改完包内容重装时会踩）：`file:` 依赖的 `resolution.integrity` 被 profile 的 `pnpm-lock.yaml` 钉住（`pnpm-lock.yaml:436`），`pnpm install --force` 与 `pnpm install --lockfile-only` + `pnpm install` **都继续用旧内容**，装出来的 `cordis.patch.yml` 还是旧的。有效做法：从 profile 的 `package.json` 里删掉该依赖 → `pnpm install`（`node_modules/@smallmj` 被移除）→ 原样加回 → `pnpm install`。
+
+**教训**：改包名必须同步改 `cordis.patch.yml`（CLAUDE.md 契约 17）。这条也是「功能兼容」层才暴露的问题——桩宿主与 peer 闸门都证明不了它。
 
 ## 复现命令
 
