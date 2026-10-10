@@ -23,7 +23,7 @@ node scripts/test-store-params.mjs   # 离线自测：参数保存/重载（需�
 node scripts/test-skillpack.mjs      # 离线自测：技能包 CRUD / 路径穿越防护（需先 build）
 node scripts/test-transfer.mjs       # 离线自测：预设导出/导入回环（需先 build）
 node scripts/test-convert.mjs        # 离线自测：画布分析与图→API 转换回归（需先 build）
-node scripts/test-host-compat.mjs    # 离线自测：桩宿主上下文驱动 apply() 的加载兼容 + peer 闸门断言（需先 build:host）
+node scripts/test-host-compat.mjs    # 离线自测：桩宿主上下文驱动 apply() 的加载兼容 + peer 闸门断言（需先 build:host；等价的一条命令 `npm run test:host-compat`）
 ```
 
 **改动生效规则**：`src/*.ts`（host：tools/routes/store/params/skill…）改完要 **重启 DSH**；`src/client/*` 改完 **刷新页面** 即可。skill 文本编译进 `lib/skill.js`，属 host 侧。
