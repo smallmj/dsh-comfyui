@@ -166,6 +166,8 @@ Agent ──tools──┐
 | `README.md` / `README.en.md` | 用户文档（中 / 英，npm 首页渲染 `README.md`）。改功能时同步更新两份的功能列表与截图。 |
 | `DEVELOPMENT.md` | 维护者笔记：版本状态、时间线、辅助脚本、git / npm 发布流程、运行时数据文件。**本地文件，不入版本库**。 |
 | `docs/INCIDENTS.md` | 事故复盘：注入消息缺 `id` 写坏会话日志导致整个会话无法加载。 |
+| `docs/DSH-0.2.0-COMPAT.md` | 宿主 0.2.0-rc.2 兼容审计：根因、逐条接缝核对、决策表、待办状态。 |
+| `docs/ACCEPTANCE-0.2.0.md` | 真机验收清单（三层验收的第三层）：本地 tarball 装机路线 + dshmarket 发布路线。 |
 | `AWESOME.md` | 上架 awesome-dsh-plugin / dshmarket 的材料与核对清单。 |
 
 改动时的同步义务：**改功能** → 两份 README + `src/skill.ts`；**改结构 / 新增模块、路由、工具或契约** → 本文件；**发版** → `DEVELOPMENT.md` 的版本表与时间线。

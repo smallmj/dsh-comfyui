@@ -73,8 +73,8 @@
 | 2 | `version` 0.5.4 → 0.5.5；`repository.url` 指向 fork | ✅ 已完成 |
 | 3 | `npm install && npm run typecheck && npm run build` + 4 个离线自测 | ✅ typecheck 与 `build:host` 在 `dsh-settings@0.2.0-rc.2` 类型上通过；`test-convert` / `test-skillpack` / `test-store-params` / `test-transfer` 全部 exit 0 |
 | 4 | 加载冒烟接缝：`scripts/test-host-compat.mjs` —— 桩宿主上下文驱动 `apply(ctx, entryConfig)`，断言注册行为；同脚本内折叠 peer 闸门静态断言（与宿主一致的预发布语义） | ✅ 已完成，25 条断言 exit 0。运行：`npm run build:host && node scripts/test-host-compat.mjs`。桩证明的是鸭子类型边界契约，以下须由真实宿主证明：cordis inject 时序与销毁顺序、真实 fiber 语义、活体 ComfyUI WebSocket 重连、设置页真实渲染与 HTTP 路由服务、宿主自己的闸门代码路径 |
-| 5 | 真实宿主 + 真实 ComfyUI 手工验收：dshmarket 安装 → 启动 → 断言工具注册 → 跑一次真实出图。**不进自动化** | ⬜ 未开始 |
-| 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ⬜ 未开始 |
+| 5 | 真实宿主 + 真实 ComfyUI 手工验收：装机 → 启动 → 断言工具注册 → 跑一次真实出图。**不进自动化** | ⬜ 未开始。验收清单已就绪：`docs/ACCEPTANCE-0.2.0.md`；tarball 已打好 `smallmj-dsh-comfyui-0.5.5.tgz`（宿主插件管理器接受 tarball / 本机绝对路径安装，**不发布也能装机验收**） |
+| 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ⬜ 未开始。**改名已完成**（`@smallmj/dsh-comfyui`，见决策表「包名」）。剩余两道闸门：本机 npm 未登录 `registry.npmjs.org`（`npm whoami` 报 `ENEEDAUTH`）；GitHub 网络不通（推送与 PR 都堵） |
 | 7 | 发版同步义务（`CLAUDE.md` §相关文档）：两份 README 版本配对表已同步；`src/skill.ts` 不含版本与宿主兼容表述，无需改动；`DEVELOPMENT.md` 版本表与时间线是本地文件，不入版本库 | ✅ 部分完成（DEVELOPMENT.md 由维护者本地更新） |
 
 **「排除的三个怀疑」一节中的三项**不得作为「修复」对象 —— 实测无害，改动只会引入风险。

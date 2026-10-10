@@ -4,14 +4,16 @@
 
 ## 建议条目（英文）
 
+> 本 fork 以 **`@smallmj/dsh-comfyui`** 自主发布（npm 发布权在上游作者，包名不能沿用），仓库 `smallmj/dsh-comfyui`。上架条目按下述填写；上游 `dsh-comfyui` 的条目由作者自己维护，两条并存。
+
 ```markdown
-- [dsh-comfyui](https://github.com/fandc520/dsh-comfyui) — Let the DeepSeek Harness agent smartly drive a local or remote ComfyUI to generate anything: agent tools (`comfyui_run`, `comfyui_object_info`, `comfyui_workflow`, `comfyui_skill`), workflow/asset/queue panel with graph extract (whole/per component/main flow), load-area media loader, per-workflow skill packs, SDXL & Wan 2.1 templates, a companion skill and a same-origin media proxy. `dsh plugin --profile web add dsh-comfyui` (web) / `dsh plugin --profile desktop add dsh-comfyui` (desktop)
+- [@smallmj/dsh-comfyui](https://github.com/smallmj/dsh-comfyui) — Let the DeepSeek Harness agent smartly drive a local or remote ComfyUI to generate anything: agent tools (`comfyui_run`, `comfyui_object_info`, `comfyui_workflow`, `comfyui_skill`), workflow/asset/queue panel with graph extract (whole/per component/main flow), load-area media loader, per-workflow skill packs, SDXL & Wan 2.1 templates, a companion skill and a same-origin media proxy. Works with dsh 0.1.2+ and 0.2.x. `dsh plugin --profile web add @smallmj/dsh-comfyui` (web) / install from the sidebar Plugins page (desktop)
 ```
 
 ## 建议条目（中文，如站点支持）
 
 ```markdown
-- [dsh-comfyui](https://github.com/fandc520/dsh-comfyui) — 让 DeepSeek Harness 的 Agent 智能驱动本地或远程 ComfyUI 生成任何内容：Agent 工具（`comfyui_run` / `comfyui_object_info` / `comfyui_workflow` / `comfyui_skill`）、工作流/资产/队列面板（图工作流提取：整体/按分量/主流程）、加载区媒体加载器、工作流技能包挂载、SDXL / Wan 2.1 模板、配套 skill 与同源媒体代理。`dsh plugin --profile web add dsh-comfyui`（web）/ `dsh plugin --profile desktop add dsh-comfyui`（desktop）
+- [@smallmj/dsh-comfyui](https://github.com/smallmj/dsh-comfyui) — 让 DeepSeek Harness 的 Agent 智能驱动本地或远程 ComfyUI 生成任何内容：Agent 工具（`comfyui_run` / `comfyui_object_info` / `comfyui_workflow` / `comfyui_skill`）、工作流/资产/队列面板（图工作流提取：整体/按分量/主流程）、加载区媒体加载器、工作流技能包挂载、SDXL / Wan 2.1 模板、配套 skill 与同源媒体代理。兼容 dsh 0.1.2+ 与 0.2.x。`dsh plugin --profile web add @smallmj/dsh-comfyui`（web）/ 侧边栏 Plugins 页安装（desktop）
 ```
 
 ## 发布前核对清单
