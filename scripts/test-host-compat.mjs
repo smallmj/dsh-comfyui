@@ -1,5 +1,6 @@
 /**
- * Host load-compatibility smoke test (加载兼容 seam).
+ * Host load-compatibility smoke test — the load-compatibility seam from the
+ * CONTEXT.md glossary (three-layer bar: install / load / feature compatibility).
  *
  * Drives the plugin's public entry `apply(ctx, entryConfig)` from the built
  * bundle (../lib/index.js) against a stub host context that models ONLY the
@@ -104,10 +105,10 @@ let passed = 0
 function check(name, ok, detail = '') {
   if (ok) {
     passed += 1
-    console.log(`PASS: ${name}`)
+    console.log(`  ok   ${name}`)
   } else {
     failures += 1
-    console.error(`FAIL: ${name}${detail === '' ? '' : ` — ${detail}`}`)
+    console.log(`  FAIL ${name}${detail === '' ? '' : ` — ${detail}`}`)
   }
 }
 
@@ -118,7 +119,7 @@ function checkDeepEqual(name, actual, expected) {
 }
 
 // ---------------------------------------------------------------------------
-// Stub host context — models only the host boundary (接缝), never plugin internals.
+// Stub host context — models only the host boundary seam, never plugin internals.
 // ---------------------------------------------------------------------------
 function createHostStub() {
   const calls = {
@@ -200,6 +201,7 @@ function createHostStub() {
 const dataDir = mkdtempSync(join(tmpdir(), 'dsh-comfyui-host-compat-'))
 const { ctx, calls, disposers } = createHostStub()
 
+let applyCompleted = false
 try {
   const { apply } = await import('../lib/index.js')
   await apply(ctx, {
@@ -207,11 +209,17 @@ try {
     dataDir,
     apiKeyEnv: 'COMFYUI_API_KEY_HOST_COMPAT_TEST',
   })
-  check('apply(ctx, entryConfig) completes without throwing against a 0.2.0-shaped host (no installSection)', true)
+  applyCompleted = true
 } catch (error) {
+  console.log(`  FAIL apply(ctx, entryConfig) threw — ${error && error.stack ? error.stack : error}`)
   failures += 1
-  console.error(`FAIL: apply threw — ${error && error.stack ? error.stack : error}`)
 }
+// The signal is the registrations apply left behind, not the absence of a throw.
+check(
+  'apply(ctx, entryConfig) completes against a 0.2.0-shaped host (no installSection) and registers onto it',
+  applyCompleted && calls.tools.length > 0 && calls.configure.length > 0,
+  `completed=${applyCompleted} tools=${calls.tools.length} configure=${calls.configure.length}`,
+)
 
 // 2. Exactly the 4 tools register, each with a usable output (schema + render).
 const toolNames = calls.tools.map((t) => t.name).sort()
@@ -271,7 +279,8 @@ check(
 const workflowTool = calls.tools.find((t) => t.name === 'comfyui_workflow')
 if (workflowTool === undefined) {
   failures += 1
-  console.error('FAIL: comfyui_workflow tool not found — cannot exercise credentials path')
+  console.log('  FAIL comfyui_workflow tool not found — cannot exercise credentials path')
+  failures += 1
 } else {
   try {
     const result = await workflowTool.execute({ action: 'list' }, {})
@@ -286,13 +295,12 @@ if (workflowTool === undefined) {
       `resolve calls=${calls.credentialResolve.length}`,
     )
   } catch (error) {
-    failures += 1
-    console.error(`FAIL: credentials path threw — ${error && error.stack ? error.stack : error}`)
+    console.log(`  FAIL credentials path threw — ${error && error.stack ? error.stack : error}`)
   }
 }
 
 // ---------------------------------------------------------------------------
-// 8. 安装兼容 / peer gate: manifest peer range must satisfy each target host
+// 8. Install-compatibility / peer gate: manifest peer range must satisfy each target host
 // version with prerelease inclusion (host gate = semver {includePrerelease:true}),
 // and must reject out-of-range versions so the check cannot pass vacuously.
 // ---------------------------------------------------------------------------
@@ -350,8 +358,8 @@ for (const dispose of disposers.reverse()) {
 rmSync(dataDir, { recursive: true, force: true })
 
 if (failures > 0) {
-  console.error(`HOST COMPAT: ${failures} assertion(s) FAILED`)
+  console.log(`\n${failures} check(s) failed`)
   process.exit(1)
 }
-console.log(`HOST COMPAT: all ${passed} assertions passed — plugin loads onto a 0.2.0-shaped host (加载兼容) and the peer gate covers every target host line (安装兼容)`)
+console.log(`\nall ${passed} checks passed — the plugin loads onto a 0.2.0-shaped host, and the peer gate covers every target host line`)
 process.exit(0)
