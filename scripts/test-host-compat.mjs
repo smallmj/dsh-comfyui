@@ -310,8 +310,8 @@ if (typeof peerRange === 'string') {
     '0.1.6-alpha.1',
     '0.1.7-alpha.1',
     '0.1.7-rc.2',
-    '0.2.0-rc.1',
     '0.2.0-rc.2',
+    '0.2.0',
     '0.2.1-alpha.1',
   ]
   for (const version of mustSatisfy) {
@@ -321,7 +321,11 @@ if (typeof peerRange === 'string') {
       `range=${peerRange}`,
     )
   }
-  const mustNotSatisfy = ['0.3.0', '0.1.1']
+  // 0.2.0-rc.1 is deliberately out of range: the peer floor is the lowest host
+  // version actually audited (0.2.0-rc.2), and caret upper bounds carry `-0`,
+  // so `^0.2.0-rc.2` = [0.2.0-rc.2, 0.3.0-0). Refusing rc.1 tells those users
+  // to upgrade one nightly — an unverified host is not endorsed.
+  const mustNotSatisfy = ['0.2.0-rc.1', '0.3.0', '0.1.1']
   for (const version of mustNotSatisfy) {
     check(
       `peer range rejects out-of-range host ${version}`,
