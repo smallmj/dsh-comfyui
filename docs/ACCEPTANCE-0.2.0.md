@@ -46,7 +46,7 @@ curl -s http://127.0.0.1:3080/comfyui/config | head -c 400
 - [ ] 面板资产页能看到这次产出，卡片里的图能显示（走 `/comfyui/media` 同源代理）
 - [ ] 设置页「测试连接」通过
 - [ ] 若你的 ComfyUI 有画布工作流：面板「提取」一次（验证多分量拆分），运行提取出的执行流
-- [ ] 视频模板（可选，需 ComfyUI-WanVideoWrapper）：`template: "video"` 用 `mode: "async"`
+- [ ] 视频模板（可选，需 ComfyUI-WanVideoWrapper）：`template: "video"` 用 `mode: "async"` —— **这一项同时是 jobs owner 修复（契约 16）的验收点**：失败签名是 `session "[object Object]" has no live agent (background job owner must be live)`，出现即说明 `jobsOwner` 的特征探测没生效
 
 真机冒烟脚本（打同源路由，需 DSH + ComfyUI 都在跑）：
 

@@ -76,8 +76,38 @@
 | 5 | 真实宿主 + 真实 ComfyUI 手工验收：装机 → 启动 → 断言工具注册 → 跑一次真实出图。**不进自动化** | ⬜ 未开始。验收清单已就绪：`docs/ACCEPTANCE-0.2.0.md`；tarball 已打好 `smallmj-dsh-comfyui-0.5.5.tgz`（宿主插件管理器接受 tarball / 本机绝对路径安装，**不发布也能装机验收**） |
 | 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ⬜ 未开始。**改名已完成**（`@smallmj/dsh-comfyui`，见决策表「包名」）。剩余两道闸门：本机 npm 未登录 `registry.npmjs.org`（`npm whoami` 报 `ENEEDAUTH`）；GitHub 网络不通（推送与 PR 都堵） |
 | 7 | 发版同步义务（`CLAUDE.md` §相关文档）：两份 README 版本配对表已同步；`src/skill.ts` 不含版本与宿主兼容表述，无需改动；`DEVELOPMENT.md` 版本表与时间线是本地文件，不入版本库 | ✅ 部分完成（DEVELOPMENT.md 由维护者本地更新） |
+| 8 | 采纳上游 PR #14 的后台任务 owner 修复（`jobsOwner`）+ 删除 `dsh.client.inject` 里的死引用 `@deepseek-ai/dsh-client-runtime` | ✅ 已完成（见「与上游 PR #14 的对比」）。`src/tools.ts` 取 PR #14 版本，CLAUDE.md 契约 16 记录契约分叉 |
 
 **「排除的三个怀疑」一节中的三项**不得作为「修复」对象 —— 实测无害，改动只会引入风险。
+
+## 与上游 PR #14 的对比
+
+上游存在他人提交的适配 PR：**#14**（作者 `164105419`，分支 `support-dsh-0.2.0`，单 commit `c5f49b4`，2026-10-03，状态 OPEN / MERGEABLE，5 文件 +22/−8）。逐条比对：
+
+| 项目 | PR #14 | 本分支 |
+| --- | --- | --- |
+| peer 追加段 | `\|\| ^0.2.0-rc.2` | **完全一致**（同段同下限） |
+| peer 下限取 rc.2 的理由 | 未讨论 rc.1 | 显式记录为有意决定（决策表） |
+| 版本号 | 0.5.5 | 0.5.5（相同） |
+| **后台任务 owner 契约** | **修了**（`jobsOwner()`） | 本分支原先**没修** ← 已采纳 |
+| `dsh.client.inject` 的 `dsh-client-runtime` | 删除 | 采纳删除（该字段是纯声明，删除属清理死引用，零风险） |
+| devDep `dsh-settings` | 未动（仍 `^0.1.2-alpha.4`）→ 类型检查跑在 0.1.x 类型上 | 提到 `^0.2.0-rc.2` → 类型检查跑在目标宿主类型上 |
+| 验证方式 | 真机：0.2.0-rc.2 web profile + 真 ComfyUI 端到端出图（Qwen-Image 2.1，38.3s，1024×1024） | 离线：桩宿主 25 断言 + 4 个既有自测 + 0.2.0 类型基线 |
+| 测试接缝 / 审计文档 / 验收清单 | 无 | 有 |
+| 发布 | 不改名（作者持发布权） | 改名 `@smallmj/dsh-comfyui` + `publishConfig` |
+
+**jobs owner 修复已独立核实为真**（不依赖 PR 作者的叙述）：
+
+| `@deepseek-ai/dsh-jobs` | `JobSpec.owner` | `readAt` |
+| --- | --- | --- |
+| 0.1.6-alpha.1（npm 发布物 `lib/types/types.d.ts:55`） | `Agent` | 无 |
+| 0.1.7-alpha.1（`lib/types/types.d.ts:128`） | `SessionId` | 有 |
+| 0.1.7-rc.2 / 0.2.0-rc.2 源码（`packages/jobs/jobs/src/types.ts:137`） | `SessionId` | 有（`jobs/src/index.ts:148`） |
+
+`jobs-local` 的 `resolveOwner`（`packages/jobs/jobs-local/src/index.ts:357-367`）把 `spec.owner` 当 session id 传给 `agents.get(...)`，取不到即抛 `session "${session}" has no live agent`。插件传的是 `exec.agent` 对象，字符串化后是 `"[object Object]"` → **0.1.7+ 宿主上 `mode:"async"` 直接失败**，而 CLAUDE.md 契约 5 规定视频/音频必须 async。`Agent.id` 就是 `SessionId`（`packages/core/agent/src/index.ts:212`，注册表按 `agent.id` 存，同文件:538），故 `jobsOwner` 传 `agent.id` 正确；`readAt` 作为特征探测成立（与 owner 改 SessionId 同批引入）。
+
+这条正是离线审计到不了的「功能兼容」层：桩宿主能证明注册接缝，证明不了 jobs 语义。**结论：两条分支互补** —— 本分支强在审计/类型基线/接缝/文档，PR #14 强在真机端到端与这个功能修复。
+
 
 ## 复现命令
 

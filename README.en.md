@@ -19,7 +19,7 @@
 >
 > | Plugin | Paired DeepSeek Harness | Notes |
 > | --- | --- | --- |
-> | **`@smallmj/dsh-comfyui` 0.5.x (this fork, `latest` tag)** | **>= 0.1.2** (incl. 0.1.5 / 0.1.6 / 0.1.7 prereleases) **and 0.2.x** (incl. 0.2.0-rc.2 and later prereleases) | From 0.5.3 the settings page works with dsh 0.1.7's settings model (saves apply live, no restart); from 0.5.5 the peer range admits dsh 0.2.x hosts, 0.1.x hosts are unaffected |
+> | **`@smallmj/dsh-comfyui` 0.5.x (this fork, `latest` tag)** | **>= 0.1.2** (incl. 0.1.5 / 0.1.6 / 0.1.7 prereleases) **and 0.2.x** (incl. 0.2.0-rc.2 and later prereleases) | From 0.5.3 the settings page works with dsh 0.1.7's settings model (saves apply live, no restart); from 0.5.5 the peer range admits dsh 0.2.x hosts, 0.1.x hosts are unaffected, and the 0.1.7+/0.2.x background-job owner contract is handled (`mode:"async"` fix, taken from upstream PR #14) |
 > | **`dsh-comfyui` 0.3.x (upstream beta line, `beta` tag)** | **0.1.1** | On older dsh versions stay on the upstream 0.3.x line |
 >
 > Install: `dsh plugin --profile web add @smallmj/dsh-comfyui` (latest 0.5.x) / `dsh plugin --profile web add dsh-comfyui@beta` (upstream 0.3.x for older hosts).

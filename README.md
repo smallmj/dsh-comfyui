@@ -19,7 +19,7 @@
 >
 > | 插件 | 配对的 DeepSeek Harness | 说明 |
 > | --- | --- | --- |
-> | **`@smallmj/dsh-comfyui` 0.5.x（本 fork，`latest` tag）** | **≥ 0.1.2**（含 0.1.5 / 0.1.6 / 0.1.7 预发布版）**以及 0.2.x**（含 0.2.0-rc.2 起的预发布版） | 0.5.3 起兼容 dsh 0.1.7 的设置机制（设置页保存直接生效，无需重启）；0.5.5 起 peer 范围追加 dsh 0.2.x 宿主，0.1.x 宿主不受影响 |
+> | **`@smallmj/dsh-comfyui` 0.5.x（本 fork，`latest` tag）** | **≥ 0.1.2**（含 0.1.5 / 0.1.6 / 0.1.7 预发布版）**以及 0.2.x**（含 0.2.0-rc.2 起的预发布版） | 0.5.3 起兼容 dsh 0.1.7 的设置机制（设置页保存直接生效，无需重启）；0.5.5 起 peer 范围追加 dsh 0.2.x 宿主，0.1.x 宿主不受影响，并适配 0.1.7+/0.2.x 的后台任务 owner 契约（`mode:"async"` 修复，取自上游 PR #14） |
 > | **`dsh-comfyui` 0.3.x（上游 beta 线，`beta` tag）** | **0.1.1** | 老版本 dsh 请留在上游的 0.3.x 线 |
 >
 > 安装：`dsh plugin --profile web add @smallmj/dsh-comfyui`（装最新 0.5.x）/ `dsh plugin --profile web add dsh-comfyui@beta`（老宿主装上游 0.3.x）。

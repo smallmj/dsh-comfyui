@@ -8,7 +8,7 @@
 
 - npm 包名 `@smallmj/dsh-comfyui`（本 fork 自主发布，`publishConfig.registry` 锁 `registry.npmjs.org`），ESM（`"type": "module"`），Node ≥ 22.19，MIT。**插件运行时标识不变**：`src/index.ts:28` 的 `export const name = 'dsh-comfyui'`、数据目录 `data/dsh-comfyui`、预设包格式标识 `dsh-comfyui-workflow-preset` 都**不随包名改**——改了会把用户已有数据目录换址。
 - 入口：host 侧 `lib/index.js`（由 `src/*.ts` 经 tsc 编译）；浏览器侧 `client/client.js`（由 `src/client/*` 经 tsdown 打包）。
-- peer 依赖：`@deepseek-ai/cordis`（必需）、`@deepseek-ai/dsh-settings`（`^0.1.2-alpha.4 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || ^0.2.0-rc.2`——semver 的预发布版只匹配同一 x.y.z，所以每条宿主线都要单列，**必选**——0.4.0 起摘掉 optional，老宿主安装会触发 dshmarket 风险横幅而非静默降级）。peer 下限取**实际审计过的最低宿主版本**：caret 上界带 `-0`，`^0.2.0-rc.2` 覆盖 `0.2.0-rc.2`/`0.2.0`/`0.2.1-alpha.1` 而有意排除 `0.2.0-rc.1`，见 `docs/DSH-0.2.0-COMPAT.md`。运行时依赖只有 `@deepseek-ai/schemastery`。
+- peer 依赖：`@deepseek-ai/cordis`（必需）、`@deepseek-ai/dsh-settings`（`^0.1.2-alpha.4 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || ^0.2.0-rc.2`——semver 的预发布版只匹配同一 x.y.z，所以每条宿主线都要单列，**必选**——0.4.0 起摘掉 optional，老宿主安装会触发 dshmarket 风险横幅而非静默降级）。peer 下限取**实际审计过的最低宿主版本**：caret 上界带 `-0`，`^0.2.0-rc.2` 覆盖 `0.2.0-rc.2`/`0.2.0`/`0.2.1-alpha.1` 而有意排除 `0.2.0-rc.1`，见 `docs/DSH-0.2.0-COMPAT.md`。**后台任务 owner 按宿主代际分叉**：0.1.7+ 传 `agent.id`（SessionId），0.1.2–0.1.6 传 Agent 句柄，特征探测见 `src/tools.ts` 的 `jobsOwner`（契约 16）。运行时依赖只有 `@deepseek-ai/schemastery`。
 - `cordis.patch.yml` 把插件以 `id: comfyui` 插入 profile 层栈；`package.json` 的 `dsh` 字段声明 bundle patch 与 client 平台/注入。
 
 ## 常用命令
@@ -150,6 +150,8 @@ Agent ──tools──┐
 14. **删工作流不默认删技能包**：技能包是用户手写的文档，没有别的副本。`workflows/delete` 只在 body 显式带 `deleteSkill: true` 时销毁目录，面板在有技能包时会先问"一起删/只删工作流"。停用（`disable`）同理，只清 `skillDir` 字段、留着目录。
 
 15. **DynamicCombo V3 在 API prompt 里是扁平的**：主输入的值 = 选中项的 key 字符串，子控件以 `master.sub` 为同级键（如 `codec: "auto"`、`aspect_ratio.size`）。服务端自己重组嵌套结构；包成 `{ key, inputs }` 会匹配不上、输入被丢弃，节点在 `execute()` 才报 `missing ... 'codec'`（#10，视频要白跑整轮才发现）。`params.ts` 的 combo 子参数也按扁平键工作。
+
+16. **后台任务的 `owner` 按宿主代际分叉**：`JobSpec.owner` 在 `@deepseek-ai/dsh-jobs` 0.1.2–0.1.6 是 `Agent` 句柄，**0.1.7 起改成 `SessionId`**（0.1.7-alpha.1 的 `types.d.ts:128`、0.2.0 的 `packages/jobs/jobs/src/types.ts:137`）。`jobs-local` 的 `resolveOwner` 拿它当 session id 去 `agents.get(...)`，传句柄就抛 `session "[object Object]" has no live agent`——即 0.1.7+ 宿主上 `mode:"async"`（契约 5 要求视频/音频必用）会直接失败。修法在 `src/tools.ts` 的 `jobsOwner()`：用 **`jobs.readAt` 是否存在**做特征探测（`readAt` 与 owner 改 SessionId 同批引入，0.1.6 无、0.1.7 起有），新宿主传 `agent.id`（`Agent.id` 就是 SessionId），老宿主传句柄，全版本兼容，不做版本号判断。取自上游 PR #14（作者 `164105419`）。
 
 ## 代码风格约定
 
