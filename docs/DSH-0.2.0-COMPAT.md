@@ -1,7 +1,7 @@
 # DSH 0.2.0-rc.2 兼容审计
 
-**状态：审计完成，代码未改。** 本文是证据与结论，改动按 §待办 执行。
-审计日期：2026-10-10。宿主：`0.2.0-rc.2`（nightly 通道）。插件：`dsh-comfyui` 0.5.4。
+**状态：审计完成，兼容改动已落在分支 `feat/dsh-0.2.0-compat`（见 §待办 的完成状态）。** 本文是证据与结论。
+审计日期：2026-10-10。宿主：`0.2.0-rc.2`（nightly 通道）。插件：`dsh-comfyui` 0.5.5。
 
 ## 结论一句话
 
@@ -62,14 +62,19 @@
 | 范围 | **只修兼容，不采纳 0.2.0 新能力** —— 审计没有发现接缝破坏，也没有新特性需要采纳 |
 | 豁免 | **不采用** `dsh plugin allow-version` —— 每次宿主升级都要重豁免，是绕过不是适配 |
 
-## 待办（代码改动，尚未执行）
+## 待办与完成状态
 
-1. `package.json:57` peer 追加 `\|\| ^0.2.0-rc.2`；`devDependencies["@deepseek-ai/dsh-settings"]`（`package.json:61`，现为 `^0.1.2-alpha.4`）同步到 0.2.x，让 typecheck 跑在目标宿主类型上。
-2. `version` 0.5.4 → 0.5.5；`repository.url`（`package.json:7`）指向 fork。
-3. `npm install && npm run typecheck && npm run build`，跑 4 个离线自测。
-4. 新增加载冒烟测试：装进 profile → 启动 → 断言 `apply` 注册成功 → 断言一次真实 `comfyui_run` 返回。现有 4 个脚本只测纯逻辑，测不到「闸门放行但接缝静默失效」。
-5. 发自己的包 + dshmarket 安装验证；给上游提 PR（就是第 1 条那一行）。
-6. 发版同步义务（`CLAUDE.md` §相关文档）：改功能 → 两份 README + `src/skill.ts`；发版 → `DEVELOPMENT.md` 版本表与时间线（本地文件，不入版本库）。
+| # | 项目 | 状态 |
+| --- | --- | --- |
+| 1 | `package.json` peer 追加 `\|\| ^0.2.0-rc.2`；`devDependencies["@deepseek-ai/dsh-settings"]` 同步到 `^0.2.0-rc.2`，让 typecheck 跑在目标宿主类型上 | ✅ 已完成 |
+| 2 | `version` 0.5.4 → 0.5.5；`repository.url` 指向 fork | ✅ 已完成 |
+| 3 | `npm install && npm run typecheck && npm run build` + 4 个离线自测 | ✅ typecheck 与 build 在 `dsh-settings@0.2.0-rc.2` 类型上通过；4 个离线自测见 PR 验证记录 |
+| 4 | 加载冒烟接缝：`scripts/test-host-compat.mjs` —— 桩宿主上下文驱动 `apply(ctx, entryConfig)`，断言注册行为；同脚本内折叠 peer 闸门静态断言（与宿主一致的预发布语义） | ⏳ 进行中 |
+| 5 | 真实宿主 + 真实 ComfyUI 手工验收：dshmarket 安装 → 启动 → 断言工具注册 → 跑一次真实出图。**不进自动化** | ⬜ 未开始 |
+| 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ⬜ 未开始 |
+| 7 | 发版同步义务（`CLAUDE.md` §相关文档）：两份 README 版本配对表已同步；`src/skill.ts` 不含版本与宿主兼容表述，无需改动；`DEVELOPMENT.md` 版本表与时间线是本地文件，不入版本库 | ✅ 部分完成（DEVELOPMENT.md 由维护者本地更新） |
+
+**§排除的三个怀疑 中的三项不得作为「修复」对象** —— 实测无害，改动只会引入风险。
 
 ## 复现命令
 
