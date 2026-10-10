@@ -124,6 +124,20 @@
 
 **教训**：改包名必须同步改 `cordis.patch.yml`（CLAUDE.md 契约 17）。这条也是「功能兼容」层才暴露的问题——桩宿主与 peer 闸门都证明不了它。
 
+## 装机后 web boot 失败：客户端 banner id ≠ 包名
+
+**症状**（修好契约 17、重启后）：**DSH 整个无法启动**，只能禁用插件。崩溃日志 `~/Library/Logs/DeepSeek Harness/crash-*-web-boot.log`：`Error: web boot: 1 entry did not activate / @smallmj/dsh-comfyui: import failed (see console for the import error)`（`app.asar/lib/main.js:11573`）；渲染端控制台：`client-modules: duplicate factory registration for "dsh-comfyui" (bundle executed twice without invalidate?)`（`@deepseek-ai/dsh-client-modules/lib/client.js:575`），应用按 20 秒一轮反复重试。
+
+机制（`dsh-client-modules/lib/client.js`）：
+
+1. 渲染端模块图按 **graph-row id（= 包名）** 建行（`graphRows.set(row.id, ...)`），materialize 时用 `factories.get(id)` 查工厂；
+2. 客户端 bundle 的 banner `__ModuleLoader__.load({ id: ... })` 是工厂注册号，`tsdown.config.mjs` 里写死了旧字面量 `dsh-comfyui`；
+3. 行 `@smallmj/dsh-comfyui` 永远找不到工厂 → 按 loader 规则「批量 URL 已失败/缺行的 row 直接走 one-resource URL」**再次执行同一份 client.js** → `register()` 对同一 id 的第二次注册直接抛 → web boot 整体失败。
+
+上游不受影响纯属巧合：它的包名无 scope，恰好等于写死的 banner id。与契约 17 同族——**凡按包名解析的工件都必须跟着包名走**。修法：`tsdown.config.mjs` 的 `ID = createRequire(import.meta.url)('./package.json').name`（不再写字面量）。回归防护：`scripts/test-host-compat.mjs` 第 9 节静态校验「banner id == cordis.patch.yml name == npm 包名」（先红后绿：修前 banner="dsh-comfyui" ≠ 包名，exit 1；修后 27 checks 全过）。
+
+**教训**：改名后要审计的不止 cordis.patch.yml——任何「按包名寻址」的产物（banner id、patch name、URL 路径段）都要跟着改，且要有静态断言把三者绑死（契约 18）。
+
 ## 复现命令
 
 ```sh

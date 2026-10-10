@@ -156,6 +156,9 @@ Agent ──tools──┐
 17. **`cordis.patch.yml` 里的 `name` 是模块说明符，必须等于本包的 npm 包名**：cordis 加载器 `PluginEntry._init()` 执行 `tree.import(this.options.name)`，`name` 就是要 import 的包名；插件自身 `export const name` 只是插件身份（决定数据目录等），两者不是一回事。fork 把包改名成 `@smallmj/dsh-comfyui` 后，patch 里残留的 `name: 'dsh-comfyui'` 会让 bundle 层正常组合、模块却 import 不到（profile 里只有 `@smallmj/dsh-comfyui`，`require.resolve('dsh-comfyui')` → `MODULE_NOT_FOUND`），dshmarket 侧的表现是「已进入 profile bundle 层但本次未能热挂载；重启后生效」，且**重启也不会好**。加载失败只在 host 日志里留一行 error，UI 上看不出原因。改包名必须同步改这里。
 
 
+18. **客户端 bundle 的 banner id 必须等于 npm 包名**：`tsdown.config.mjs` 的 banner `__ModuleLoader__.load({ id: ... })` 是渲染端模块图按 **graph-row id（= 包名）** 查找的工厂注册号。写成旧字面量 `dsh-comfyui`（fork 改名后）时，`@smallmj/dsh-comfyui` 这一行永远 materialize 不了 → loader 走 one-resource URL 回退**重复执行 bundle** → `client-modules: duplicate factory registration` → **web boot 整个失败，DSH 无法启动**（与契约 17 同族：凡按包名解析的工件都必须跟着包名走）。现在 `ID = createRequire(import.meta.url)('./package.json').name`，`scripts/test-host-compat.mjs` 第 9 节静态校验两者一致。
+19. **pnpm 对 `file:` 依赖钉死 integrity**：重装本地 tarball 必须"先删依赖 → `pnpm install` → 再加回同 spec → `pnpm install`"；`--force` / `--lockfile-only` 都不会刷新内容。
+
 ## 代码风格约定
 
 - ESM + NodeNext：host 侧相对导入**必须带 `.js` 后缀**（`./store.js`）。客户端侧由打包器解析，现有代码 `.ts` / `.tsx`（`allowImportingTsExtensions`）与 `.js` 后缀混用（如 `./lightbox.js`），两种都能构建，改动时跟随所在文件的写法即可。
