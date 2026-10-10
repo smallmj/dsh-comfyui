@@ -56,6 +56,7 @@
 | 适配定义 | 三层（安装/加载/功能兼容），**验收定在功能兼容** —— 见 `CONTEXT.md` |
 | peer 范围 | **追加** `\|\| ^0.2.0-rc.2`，不替换 —— 保住 0.1.x 宿主，也是给上游 PR 的正确形态 |
 | peer 下限 | 下限取**实际审计过的最低宿主版本**，即 `0.2.0-rc.2`。caret 上界带 `-0`（`^0.2.0-rc.2` → `>=0.2.0-rc.2 <0.3.0-0`），故覆盖 `0.2.0-rc.2`、`0.2.0`、`0.2.1-alpha.1`；`0.2.0-rc.1` 落在范围外是**有意决定**（未审计过，不替它背书），停在 rc.1 的宿主收到 `incompatible-version` 是正确可执行的信号。同理四条 0.1.x 段永远匹配不到 0.2.0 预发布（`^0.1.7-alpha.1` → `<0.2.0-0`，而 `0.2.0-rc.2 > 0.2.0-0`） |
+| 被否掉的方案 | 把追加段写成 `^0.2.0-rc.1`（`>=0.2.0-rc.1 <0.3.0-0`，是 rc.2 段的严格超集，可顺带放行 rc.1）。**否掉**：semver 上它更宽，但它替一个从未审计过的宿主背书，换来的只是少提醒一批用户升一个 nightly。合并时丢弃实现方为此提交的 `b2db1cd`，只取其测试脚本 |
 | 类型基线 | 宿主源码 worktree `/Users/smallmj/deepseek-harness-0.2.0`（tag `dsh-v0.2.0-rc.2`）已建，类型对齐真实运行版本 |
 | 发布路径 | **fork 自发布 + 同时给上游 `fandc520/dsh-comfyui` 提 PR**（npm 发布权在上游作者手里，自发布需改名） |
 | 安装方式 | 走 **dshmarket** 安装 |
@@ -69,8 +70,8 @@
 | --- | --- | --- |
 | 1 | `package.json` peer 追加 `\|\| ^0.2.0-rc.2`；`devDependencies["@deepseek-ai/dsh-settings"]` 同步到 `^0.2.0-rc.2`，让 typecheck 跑在目标宿主类型上 | ✅ 已完成 |
 | 2 | `version` 0.5.4 → 0.5.5；`repository.url` 指向 fork | ✅ 已完成 |
-| 3 | `npm install && npm run typecheck && npm run build` + 4 个离线自测 | ✅ typecheck 与 build 在 `dsh-settings@0.2.0-rc.2` 类型上通过；4 个离线自测见 PR 验证记录 |
-| 4 | 加载冒烟接缝：`scripts/test-host-compat.mjs` —— 桩宿主上下文驱动 `apply(ctx, entryConfig)`，断言注册行为；同脚本内折叠 peer 闸门静态断言（与宿主一致的预发布语义） | ⏳ 进行中 |
+| 3 | `npm install && npm run typecheck && npm run build` + 4 个离线自测 | ✅ typecheck 与 `build:host` 在 `dsh-settings@0.2.0-rc.2` 类型上通过；`test-convert` / `test-skillpack` / `test-store-params` / `test-transfer` 全部 exit 0 |
+| 4 | 加载冒烟接缝：`scripts/test-host-compat.mjs` —— 桩宿主上下文驱动 `apply(ctx, entryConfig)`，断言注册行为；同脚本内折叠 peer 闸门静态断言（与宿主一致的预发布语义） | ✅ 已完成，25 条断言 exit 0。运行：`npm run build:host && node scripts/test-host-compat.mjs`。桩证明的是鸭子类型边界契约，以下须由真实宿主证明：cordis inject 时序与销毁顺序、真实 fiber 语义、活体 ComfyUI WebSocket 重连、设置页真实渲染与 HTTP 路由服务、宿主自己的闸门代码路径 |
 | 5 | 真实宿主 + 真实 ComfyUI 手工验收：dshmarket 安装 → 启动 → 断言工具注册 → 跑一次真实出图。**不进自动化** | ⬜ 未开始 |
 | 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ⬜ 未开始 |
 | 7 | 发版同步义务（`CLAUDE.md` §相关文档）：两份 README 版本配对表已同步；`src/skill.ts` 不含版本与宿主兼容表述，无需改动；`DEVELOPMENT.md` 版本表与时间线是本地文件，不入版本库 | ✅ 部分完成（DEVELOPMENT.md 由维护者本地更新） |
@@ -80,6 +81,10 @@
 ## 复现命令
 
 ```sh
+# 加载冒烟接缝 + 既有离线自测
+npm run build:host && node scripts/test-host-compat.mjs
+for s in convert skillpack store-params transfer; do node scripts/test-$s.mjs; done
+
 # 装机宿主版本
 plutil -p "/Applications/DeepSeek Harness.app/Contents/Info.plist" | grep CFBundleShortVersionString
 
