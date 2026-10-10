@@ -14,12 +14,18 @@
  * tracker still best-effort dials the (refused) ComfyUI WebSocket and keeps a
  * 3s retry timer alive, so this script always process.exit()s explicitly.
  */
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+// The cordis.patch.yml insert entry: `name` is the module specifier the loader
+// imports (see section 9). Parsed leniently — a YAML dependency is not allowed.
+const patchName = /(?:^|\n)[ \t]*-?[ \t]*name:[ \t]*['"]?([^'"\n]+?)['"]?[ \t]*$/m.exec(
+  readFileSync(join(repoRoot, 'cordis.patch.yml'), 'utf8'),
+ )?.[1]?.trim()
 
 // ---------------------------------------------------------------------------
 // Minimal semver comparator. Covers ONLY caret segments (`^x.y.z` and
@@ -341,6 +347,34 @@ if (typeof peerRange === 'string') {
       `range=${peerRange}`,
     )
   }
+}
+
+// ---------------------------------------------------------------------------
+// 9. Identity consistency: every artifact the host resolves BY PACKAGE NAME
+// must carry the current package name. Two failure modes were hit in the field
+// after the fork rename:
+//   - cordis.patch.yml `name` is the module specifier the cordis loader imports
+//     (PluginEntry._init -> tree.import(options.name)); a stale value leaves the
+//     bundle layer composed while the plugin module never loads.
+//   - the client bundle banner registers the factory id the renderer's module
+//     graph looks up by graph-row id (= package name); a stale banner makes the
+//     row fall back to its one-resource URL, re-executes the bundle and aborts
+//     web boot with `duplicate factory registration` (host never starts).
+// ---------------------------------------------------------------------------
+check(
+  'cordis.patch.yml entry name equals the npm package name',
+  patchName === manifest.name,
+  `patch=${JSON.stringify(patchName)} package=${JSON.stringify(manifest.name)}`,
+)
+const clientBundlePath = join(repoRoot, 'client', 'client.js')
+if (existsSync(clientBundlePath)) {
+  const clientBundle = readFileSync(clientBundlePath, 'utf8')
+  const bannerId = /__ModuleLoader__\.load\(\{\s*id:\s*"([^"]+)"/.exec(clientBundle)?.[1]
+  check(
+    'client bundle registers under the npm package name (renderer module-graph id)',
+    bannerId === manifest.name,
+    `banner=${JSON.stringify(bannerId)} package=${JSON.stringify(manifest.name)}`,
+  )
 }
 
 // ---------------------------------------------------------------------------

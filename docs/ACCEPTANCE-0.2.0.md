@@ -91,6 +91,11 @@ plutil -p "/Applications/DeepSeek Harness.app/Contents/Info.plist" | grep CFBund
 - 设置页/面板哪一项没出现
 - 生成失败时 Agent 的报错原文（不要贴完整工作流 JSON）
 
+**已知失败签名**（都修过，出现即说明包内容回退到了旧版）：
+
+- 「已进入 profile bundle 层但本次未能热挂载」→ `cordis.patch.yml` 的 `name` 不是包名（契约 17）；重装时注意 pnpm 钉 `file:` integrity 的陷阱（契约 19）。
+- **DSH 无法启动**，`crash-*-web-boot.log` 报 `1 entry did not activate / @smallmj/dsh-comfyui` + 控制台 `duplicate factory registration for "dsh-comfyui"` → 客户端 banner id 还是旧字面量（契约 18）。`node scripts/test-host-compat.mjs` 第 9 节会直接报红。
+
 ## 同步义务（CLAUDE.md 规定）
 
 - `DEVELOPMENT.md` 的版本表与时间线 —— **该文件在本机不存在**（gitignored，clone 拿不到），需要时新建
