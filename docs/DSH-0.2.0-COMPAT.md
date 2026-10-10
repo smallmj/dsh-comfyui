@@ -59,6 +59,7 @@
 | 被否掉的方案 | 把追加段写成 `^0.2.0-rc.1`（`>=0.2.0-rc.1 <0.3.0-0`，是 rc.2 段的严格超集，可顺带放行 rc.1）。**否掉**：semver 上它更宽，但它替一个从未审计过的宿主背书，换来的只是少提醒一批用户升一个 nightly。合并时丢弃实现方为此提交的 `b2db1cd`，只取其测试脚本 |
 | 类型基线 | 宿主源码 worktree `/Users/smallmj/deepseek-harness-0.2.0`（tag `dsh-v0.2.0-rc.2`）已建，类型对齐真实运行版本 |
 | 发布路径 | **fork 自发布 + 同时给上游 `fandc520/dsh-comfyui` 提 PR**（npm 发布权在上游作者手里，自发布需改名） |
+| 包名 | 本 fork 发布为 **`@smallmj/dsh-comfyui`**（scoped，npm 上未被占用），`publishConfig.registry` 锁 `registry.npmjs.org`（本机 `~/.npmrc` 指向 npmmirror 镜像，镜像不接受发布）。**只改 npm 包名，不改运行时标识**：`src/index.ts:28` 的 `export const name = 'dsh-comfyui'`、数据目录 `data/dsh-comfyui`、预设包格式标识 `dsh-comfyui-workflow-preset` 全部保持——它们决定用户已有数据与已导出预设的位置和可读性，改了等于给用户换址。fork 包从 0.5.5 起独立计数，**没有** `beta` tag；老宿主（dsh 0.1.1）仍走上游 `dsh-comfyui@beta` |
 | 安装方式 | 走 **dshmarket** 安装 |
 | 验证 | 复用现有 4 个离线自测（`scripts/test-convert.mjs`、`test-skillpack.mjs`、`test-store-params.mjs`、`test-transfer.mjs`，均需先 `npm run build`）**+ 新增一个加载冒烟测试** |
 | 范围 | **只修兼容，不采纳 0.2.0 新能力** —— 审计没有发现接缝破坏，也没有新特性需要采纳 |

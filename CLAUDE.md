@@ -6,7 +6,7 @@
 
 `dsh-comfyui` 是 **DeepSeek Harness (DSH / cordis) 的 ComfyUI 插件**：让 Agent 通过工具直接驱动 ComfyUI 生成、处理图像与视频，并在浏览器端提供工作流库 / 资产 / 队列面板、对话内媒体卡片和设置页。
 
-- 包名 `dsh-comfyui`，ESM（`"type": "module"`），Node ≥ 22.19，MIT。
+- npm 包名 `@smallmj/dsh-comfyui`（本 fork 自主发布，`publishConfig.registry` 锁 `registry.npmjs.org`），ESM（`"type": "module"`），Node ≥ 22.19，MIT。**插件运行时标识不变**：`src/index.ts:28` 的 `export const name = 'dsh-comfyui'`、数据目录 `data/dsh-comfyui`、预设包格式标识 `dsh-comfyui-workflow-preset` 都**不随包名改**——改了会把用户已有数据目录换址。
 - 入口：host 侧 `lib/index.js`（由 `src/*.ts` 经 tsc 编译）；浏览器侧 `client/client.js`（由 `src/client/*` 经 tsdown 打包）。
 - peer 依赖：`@deepseek-ai/cordis`（必需）、`@deepseek-ai/dsh-settings`（`^0.1.2-alpha.4 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || ^0.2.0-rc.2`——semver 的预发布版只匹配同一 x.y.z，所以每条宿主线都要单列，**必选**——0.4.0 起摘掉 optional，老宿主安装会触发 dshmarket 风险横幅而非静默降级）。peer 下限取**实际审计过的最低宿主版本**：caret 上界带 `-0`，`^0.2.0-rc.2` 覆盖 `0.2.0-rc.2`/`0.2.0`/`0.2.1-alpha.1` 而有意排除 `0.2.0-rc.1`，见 `docs/DSH-0.2.0-COMPAT.md`。运行时依赖只有 `@deepseek-ai/schemastery`。
 - `cordis.patch.yml` 把插件以 `id: comfyui` 插入 profile 层栈；`package.json` 的 `dsh` 字段声明 bundle patch 与 client 平台/注入。
