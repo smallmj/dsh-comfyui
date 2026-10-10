@@ -11,3 +11,5 @@ DEVELOPMENT.md
 .dsh-meow/
 # macOS 目录元数据
 .DS_Store
+# npm pack 产物（装机验收用的本地 tarball）
+/*.tgz

@@ -6,9 +6,9 @@
 
 `dsh-comfyui` 是 **DeepSeek Harness (DSH / cordis) 的 ComfyUI 插件**：让 Agent 通过工具直接驱动 ComfyUI 生成、处理图像与视频，并在浏览器端提供工作流库 / 资产 / 队列面板、对话内媒体卡片和设置页。
 
-- 包名 `dsh-comfyui`，ESM（`"type": "module"`），Node ≥ 22.19，MIT。
+- npm 包名 `@smallmj/dsh-comfyui`（本 fork 自主发布，`publishConfig.registry` 锁 `registry.npmjs.org`），ESM（`"type": "module"`），Node ≥ 22.19，MIT。**插件运行时标识不变**：`src/index.ts:28` 的 `export const name = 'dsh-comfyui'`、数据目录 `data/dsh-comfyui`、预设包格式标识 `dsh-comfyui-workflow-preset` 都**不随包名改**——改了会把用户已有数据目录换址。
 - 入口：host 侧 `lib/index.js`（由 `src/*.ts` 经 tsc 编译）；浏览器侧 `client/client.js`（由 `src/client/*` 经 tsdown 打包）。
-- peer 依赖：`@deepseek-ai/cordis`（必需）、`@deepseek-ai/dsh-settings`（`^0.1.2-alpha.4 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1`——semver 的预发布版只匹配同一 x.y.z，所以每条宿主线都要单列，**必选**——0.4.0 起摘掉 optional，老宿主安装会触发 dshmarket 风险横幅而非静默降级）。运行时依赖只有 `@deepseek-ai/schemastery`。
+- peer 依赖：`@deepseek-ai/cordis`（必需）、`@deepseek-ai/dsh-settings`（`^0.1.2-alpha.4 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || ^0.2.0-rc.2`——semver 的预发布版只匹配同一 x.y.z，所以每条宿主线都要单列，**必选**——0.4.0 起摘掉 optional，老宿主安装会触发 dshmarket 风险横幅而非静默降级）。peer 下限取**实际审计过的最低宿主版本**：caret 上界带 `-0`，`^0.2.0-rc.2` 覆盖 `0.2.0-rc.2`/`0.2.0`/`0.2.1-alpha.1` 而有意排除 `0.2.0-rc.1`，见 `docs/DSH-0.2.0-COMPAT.md`。**后台任务 owner 按宿主代际分叉**：0.1.7+ 传 `agent.id`（SessionId），0.1.2–0.1.6 传 Agent 句柄，特征探测见 `src/tools.ts` 的 `jobsOwner`（契约 16）。运行时依赖只有 `@deepseek-ai/schemastery`。
 - `cordis.patch.yml` 把插件以 `id: comfyui` 插入 profile 层栈；`package.json` 的 `dsh` 字段声明 bundle patch 与 client 平台/注入。
 
 ## 常用命令
@@ -23,6 +23,7 @@ node scripts/test-store-params.mjs   # 离线自测：参数保存/重载（需�
 node scripts/test-skillpack.mjs      # 离线自测：技能包 CRUD / 路径穿越防护（需先 build）
 node scripts/test-transfer.mjs       # 离线自测：预设导出/导入回环（需先 build）
 node scripts/test-convert.mjs        # 离线自测：画布分析与图→API 转换回归（需先 build）
+node scripts/test-host-compat.mjs    # 离线自测：桩宿主上下文驱动 apply() 的加载兼容 + peer 闸门断言（需先 build:host；等价的一条命令 `npm run test:host-compat`）
 ```
 
 **改动生效规则**：`src/*.ts`（host：tools/routes/store/params/skill…）改完要 **重启 DSH**；`src/client/*` 改完 **刷新页面** 即可。skill 文本编译进 `lib/skill.js`，属 host 侧。
@@ -141,6 +142,7 @@ Agent ──tools──┐
 | `test-skillpack.mjs` | 离线自测：技能包 slug / frontmatter / 文件 CRUD / 尺寸上限 / 路径穿越防护 / 工作流绑定（需先 `npm run build`，它导入 `lib/skillpack.js`） |
 | `test-convert.mjs` | 离线自测：画布分析与图→API 转换——DynamicCombo 扁平（#10）、bypass 直通与越界引用拒绝（#8）、Set/Get 按名配对（作用域、链式、直通输出、缺 setter）、rgthree Relay/Repeater 连线丢弃（#8）（需先 `npm run build`，它导入 `lib/analyze.js`、`lib/convert.js`） |
 | `test-transfer.mjs` | 离线自测：预设导出→分析→导入回环（参数/技能包字节/空目录/requireSkill 逐项断言）、重名 `（导入）` 后缀、zip-slip 防护、格式与版本拒绝（需先 `npm run build`，它导入 `lib/transfer.js`） |
+| `test-host-compat.mjs` | 离线自测：桩宿主上下文（0.2.0 形状，无 `installSection`）驱动入口 `apply(ctx, entryConfig)`，断言 4 个工具/设置 volatile 分支/技能/webServer 路由与索引页 tap/`loader/volatile-update` 订阅/无凭据回退；同脚本内折叠 peer 闸门静态断言（预发布逐条语义，含 `0.2.0-rc.1` 的有意拒绝）。桩只覆盖宿主边界，真实宿主须另行验收（需先 `npm run build:host`，它导入 `lib/index.js`） |
 | `run-cg-portrait.mjs` / `run-16x9.mjs` | 真机冒烟：打同源路由（默认 `http://127.0.0.1:3080`）跑一次带自定义 prompt 的工作流，需 DSH + ComfyUI 都在运行 |
 
 12. **技能包是"按需披露"，不是常驻 skill**：per-workflow 的技能包**不注册进 `ctx.skills`**。宿主的 skill 目录（`dsh-tool-skill`）会把每个 model-invocable skill 无条件写进一条常驻消息，`modelInvocable: false` 的又会被 `skill` 工具拒绝加载——两头都不满足"用到才可见"。所以披露阶梯挂在 `comfyui_workflow` 上：list 一行摘要 → `action: skill` 取正文 → 模型自己用文件工具读 references。常驻的 `dsh-comfyui-workflows` skill 只负责放那条路由规则。**别把技能包改成 `ctx.skills.register`**，那会让每个工作流都在每轮请求里收费。
@@ -148,6 +150,11 @@ Agent ──tools──┐
 14. **删工作流不默认删技能包**：技能包是用户手写的文档，没有别的副本。`workflows/delete` 只在 body 显式带 `deleteSkill: true` 时销毁目录，面板在有技能包时会先问"一起删/只删工作流"。停用（`disable`）同理，只清 `skillDir` 字段、留着目录。
 
 15. **DynamicCombo V3 在 API prompt 里是扁平的**：主输入的值 = 选中项的 key 字符串，子控件以 `master.sub` 为同级键（如 `codec: "auto"`、`aspect_ratio.size`）。服务端自己重组嵌套结构；包成 `{ key, inputs }` 会匹配不上、输入被丢弃，节点在 `execute()` 才报 `missing ... 'codec'`（#10，视频要白跑整轮才发现）。`params.ts` 的 combo 子参数也按扁平键工作。
+
+16. **后台任务的 `owner` 按宿主代际分叉**：`JobSpec.owner` 在 `@deepseek-ai/dsh-jobs` 0.1.2–0.1.6 是 `Agent` 句柄，**0.1.7 起改成 `SessionId`**（0.1.7-alpha.1 的 `types.d.ts:128`、0.2.0 的 `packages/jobs/jobs/src/types.ts:137`）。`jobs-local` 的 `resolveOwner` 拿它当 session id 去 `agents.get(...)`，传句柄就抛 `session "[object Object]" has no live agent`——即 0.1.7+ 宿主上 `mode:"async"`（契约 5 要求视频/音频必用）会直接失败。修法在 `src/tools.ts` 的 `jobsOwner()`：用 **`jobs.readAt` 是否存在**做特征探测（`readAt` 与 owner 改 SessionId 同批引入，0.1.6 无、0.1.7 起有），新宿主传 `agent.id`（`Agent.id` 就是 SessionId），老宿主传句柄，全版本兼容，不做版本号判断。取自上游 PR #14（作者 `164105419`）。
+
+17. **`cordis.patch.yml` 里的 `name` 是模块说明符，必须等于本包的 npm 包名**：cordis 加载器 `PluginEntry._init()` 执行 `tree.import(this.options.name)`，`name` 就是要 import 的包名；插件自身 `export const name` 只是插件身份（决定数据目录等），两者不是一回事。fork 把包改名成 `@smallmj/dsh-comfyui` 后，patch 里残留的 `name: 'dsh-comfyui'` 会让 bundle 层正常组合、模块却 import 不到（profile 里只有 `@smallmj/dsh-comfyui`，`require.resolve('dsh-comfyui')` → `MODULE_NOT_FOUND`），dshmarket 侧的表现是「已进入 profile bundle 层但本次未能热挂载；重启后生效」，且**重启也不会好**。加载失败只在 host 日志里留一行 error，UI 上看不出原因。改包名必须同步改这里。
+
 
 ## 代码风格约定
 
@@ -164,6 +171,8 @@ Agent ──tools──┐
 | `README.md` / `README.en.md` | 用户文档（中 / 英，npm 首页渲染 `README.md`）。改功能时同步更新两份的功能列表与截图。 |
 | `DEVELOPMENT.md` | 维护者笔记：版本状态、时间线、辅助脚本、git / npm 发布流程、运行时数据文件。**本地文件，不入版本库**。 |
 | `docs/INCIDENTS.md` | 事故复盘：注入消息缺 `id` 写坏会话日志导致整个会话无法加载。 |
+| `docs/DSH-0.2.0-COMPAT.md` | 宿主 0.2.0-rc.2 兼容审计：根因、逐条接缝核对、决策表、待办状态。 |
+| `docs/ACCEPTANCE-0.2.0.md` | 真机验收清单（三层验收的第三层）：本地 tarball 装机路线 + dshmarket 发布路线。 |
 | `AWESOME.md` | 上架 awesome-dsh-plugin / dshmarket 的材料与核对清单。 |
 
 改动时的同步义务：**改功能** → 两份 README + `src/skill.ts`；**改结构 / 新增模块、路由、工具或契约** → 本文件；**发版** → `DEVELOPMENT.md` 的版本表与时间线。

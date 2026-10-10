@@ -1,7 +1,7 @@
 # DSH 0.2.0-rc.2 兼容审计
 
-**状态：审计完成，代码未改。** 本文是证据与结论，改动按 §待办 执行。
-审计日期：2026-10-10。宿主：`0.2.0-rc.2`（nightly 通道）。插件：`dsh-comfyui` 0.5.4。
+**状态：审计完成，兼容改动已落在分支 `feat/dsh-0.2.0-compat`（见 §待办 的完成状态）。** 本文是证据与结论。
+审计日期：2026-10-10。宿主：`0.2.0-rc.2`（nightly 通道）。插件：`dsh-comfyui` 0.5.5。
 
 ## 结论一句话
 
@@ -55,25 +55,82 @@
 | --- | --- |
 | 适配定义 | 三层（安装/加载/功能兼容），**验收定在功能兼容** —— 见 `CONTEXT.md` |
 | peer 范围 | **追加** `\|\| ^0.2.0-rc.2`，不替换 —— 保住 0.1.x 宿主，也是给上游 PR 的正确形态 |
+| peer 下限 | 下限取**实际审计过的最低宿主版本**，即 `0.2.0-rc.2`。caret 上界带 `-0`（`^0.2.0-rc.2` → `>=0.2.0-rc.2 <0.3.0-0`），故覆盖 `0.2.0-rc.2`、`0.2.0`、`0.2.1-alpha.1`；`0.2.0-rc.1` 落在范围外是**有意决定**（未审计过，不替它背书），停在 rc.1 的宿主收到 `incompatible-version` 是正确可执行的信号。同理四条 0.1.x 段永远匹配不到 0.2.0 预发布（`^0.1.7-alpha.1` → `<0.2.0-0`，而 `0.2.0-rc.2 > 0.2.0-0`） |
+| 被否掉的方案 | 把追加段写成 `^0.2.0-rc.1`（`>=0.2.0-rc.1 <0.3.0-0`，是 rc.2 段的严格超集，可顺带放行 rc.1）。**否掉**：semver 上它更宽，但它替一个从未审计过的宿主背书，换来的只是少提醒一批用户升一个 nightly。合并时丢弃实现方为此提交的 `b2db1cd`，只取其测试脚本 |
 | 类型基线 | 宿主源码 worktree `/Users/smallmj/deepseek-harness-0.2.0`（tag `dsh-v0.2.0-rc.2`）已建，类型对齐真实运行版本 |
-| 发布路径 | **fork 自发布 + 同时给上游 `fandc520/dsh-comfyui` 提 PR**（npm 发布权在上游作者手里，自发布需改名） |
-| 安装方式 | 走 **dshmarket** 安装 |
+| 发布路径 | ~~fork 自发布 + 同时给上游提 PR~~ → **放弃自发布**（npm 发布权在上游作者，fork 只能用 `@smallmj-` 前缀名，还要 npm 登录 + 上架审核）。改名保留为**本地安装的寻址名**，日常使用走本地装机 |
+| 包名 | 本 fork 发布为 **`@smallmj/dsh-comfyui`**（scoped，npm 上未被占用），`publishConfig.registry` 锁 `registry.npmjs.org`（本机 `~/.npmrc` 指向 npmmirror 镜像，镜像不接受发布）。**只改 npm 包名，不改运行时标识**：`src/index.ts:28` 的 `export const name = 'dsh-comfyui'`、数据目录 `data/dsh-comfyui`、预设包格式标识 `dsh-comfyui-workflow-preset` 全部保持——它们决定用户已有数据与已导出预设的位置和可读性，改了等于给用户换址。fork 包从 0.5.5 起独立计数，**没有** `beta` tag；老宿主（dsh 0.1.1）仍走上游 `dsh-comfyui@beta`。**这条判断当时漏了一处**：`cordis.patch.yml` 的 `name` 不是运行时标识，而是 cordis 加载器要 import 的**模块说明符**（`PluginEntry._init()` → `tree.import(this.options.name)`），必须跟着包名一起改，见「装机后未挂载」一节 |
+| 安装方式 | **本地装机**（写进 desktop profile 的 `package.json` + `dsh.profile.bundles`，`pnpm install`，见 `docs/ACCEPTANCE-0.2.0.md` 路线 A）。不走 dshmarket 安装 |
 | 验证 | 复用现有 4 个离线自测（`scripts/test-convert.mjs`、`test-skillpack.mjs`、`test-store-params.mjs`、`test-transfer.mjs`，均需先 `npm run build`）**+ 新增一个加载冒烟测试** |
 | 范围 | **只修兼容，不采纳 0.2.0 新能力** —— 审计没有发现接缝破坏，也没有新特性需要采纳 |
 | 豁免 | **不采用** `dsh plugin allow-version` —— 每次宿主升级都要重豁免，是绕过不是适配 |
 
-## 待办（代码改动，尚未执行）
+## 待办与完成状态
 
-1. `package.json:57` peer 追加 `\|\| ^0.2.0-rc.2`；`devDependencies["@deepseek-ai/dsh-settings"]`（`package.json:61`，现为 `^0.1.2-alpha.4`）同步到 0.2.x，让 typecheck 跑在目标宿主类型上。
-2. `version` 0.5.4 → 0.5.5；`repository.url`（`package.json:7`）指向 fork。
-3. `npm install && npm run typecheck && npm run build`，跑 4 个离线自测。
-4. 新增加载冒烟测试：装进 profile → 启动 → 断言 `apply` 注册成功 → 断言一次真实 `comfyui_run` 返回。现有 4 个脚本只测纯逻辑，测不到「闸门放行但接缝静默失效」。
-5. 发自己的包 + dshmarket 安装验证；给上游提 PR（就是第 1 条那一行）。
-6. 发版同步义务（`CLAUDE.md` §相关文档）：改功能 → 两份 README + `src/skill.ts`；发版 → `DEVELOPMENT.md` 版本表与时间线（本地文件，不入版本库）。
+| # | 项目 | 状态 |
+| --- | --- | --- |
+| 1 | `package.json` peer 追加 `\|\| ^0.2.0-rc.2`；`devDependencies["@deepseek-ai/dsh-settings"]` 同步到 `^0.2.0-rc.2`，让 typecheck 跑在目标宿主类型上 | ✅ 已完成 |
+| 2 | `version` 0.5.4 → 0.5.5；`repository.url` 指向 fork | ✅ 已完成 |
+| 3 | `npm install && npm run typecheck && npm run build` + 4 个离线自测 | ✅ typecheck 与 `build:host` 在 `dsh-settings@0.2.0-rc.2` 类型上通过；`test-convert` / `test-skillpack` / `test-store-params` / `test-transfer` 全部 exit 0 |
+| 4 | 加载冒烟接缝：`scripts/test-host-compat.mjs` —— 桩宿主上下文驱动 `apply(ctx, entryConfig)`，断言注册行为；同脚本内折叠 peer 闸门静态断言（与宿主一致的预发布语义） | ✅ 已完成，25 条断言 exit 0。运行：`npm run build:host && node scripts/test-host-compat.mjs`。桩证明的是鸭子类型边界契约，以下须由真实宿主证明：cordis inject 时序与销毁顺序、真实 fiber 语义、活体 ComfyUI WebSocket 重连、设置页真实渲染与 HTTP 路由服务、宿主自己的闸门代码路径 |
+| 5 | 真实宿主 + 真实 ComfyUI 手工验收：装机 → 启动 → 断言工具注册 → 跑一次真实出图。**不进自动化** | 🟡 **装机已完成**（写进 desktop profile，`node_modules/@smallmj/dsh-comfyui` 就位，包内 peer 含 `^0.2.0-rc.2`，宿主 asar 的 `dsh-settings` 是 `0.2.0-rc.2`）。**待重启应用**后按 `docs/ACCEPTANCE-0.2.0.md` 跑第 1/2/3 层 |
+| 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ❌ **放弃自发布**（维护者决定，见决策表「发布路径」）。改名保留为本地安装寻址名；`AWESOME.md` 条目留作未提交的上架材料。给上游提 PR 一事由 PR #14 覆盖（见「与上游 PR #14 的对比」） |
+| 7 | 发版同步义务（`CLAUDE.md` §相关文档）：两份 README 版本配对表已同步；`src/skill.ts` 不含版本与宿主兼容表述，无需改动；`DEVELOPMENT.md` 版本表与时间线是本地文件，不入版本库 | ✅ 部分完成（DEVELOPMENT.md 由维护者本地更新） |
+| 8 | 采纳上游 PR #14 的后台任务 owner 修复（`jobsOwner`）+ 删除 `dsh.client.inject` 里的死引用 `@deepseek-ai/dsh-client-runtime` | ✅ 已完成（见「与上游 PR #14 的对比」）。`src/tools.ts` 取 PR #14 版本，CLAUDE.md 契约 16 记录契约分叉 |
+| 9 | 装机后插件未挂载（dshmarket 提示「已进入 profile bundle 层但本次未能热挂载」） | ✅ 已修复：`cordis.patch.yml` 的 `name` 改为 `@smallmj/dsh-comfyui`（它是加载器要 import 的模块说明符）。见「装机后未挂载」一节与 CLAUDE.md 契约 17 |
+
+**「排除的三个怀疑」一节中的三项**不得作为「修复」对象 —— 实测无害，改动只会引入风险。
+
+## 与上游 PR #14 的对比
+
+上游存在他人提交的适配 PR：**#14**（作者 `164105419`，分支 `support-dsh-0.2.0`，单 commit `c5f49b4`，2026-10-03，状态 OPEN / MERGEABLE，5 文件 +22/−8）。逐条比对：
+
+| 项目 | PR #14 | 本分支 |
+| --- | --- | --- |
+| peer 追加段 | `\|\| ^0.2.0-rc.2` | **完全一致**（同段同下限） |
+| peer 下限取 rc.2 的理由 | 未讨论 rc.1 | 显式记录为有意决定（决策表） |
+| 版本号 | 0.5.5 | 0.5.5（相同） |
+| **后台任务 owner 契约** | **修了**（`jobsOwner()`） | 本分支原先**没修** ← 已采纳 |
+| `dsh.client.inject` 的 `dsh-client-runtime` | 删除 | 采纳删除（该字段是纯声明，删除属清理死引用，零风险） |
+| devDep `dsh-settings` | 未动（仍 `^0.1.2-alpha.4`）→ 类型检查跑在 0.1.x 类型上 | 提到 `^0.2.0-rc.2` → 类型检查跑在目标宿主类型上 |
+| 验证方式 | 真机：0.2.0-rc.2 web profile + 真 ComfyUI 端到端出图（Qwen-Image 2.1，38.3s，1024×1024） | 离线：桩宿主 25 断言 + 4 个既有自测 + 0.2.0 类型基线 |
+| 测试接缝 / 审计文档 / 验收清单 | 无 | 有 |
+| 发布 | 不改名（作者持发布权） | 改名 `@smallmj/dsh-comfyui` + `publishConfig` |
+
+**jobs owner 修复已独立核实为真**（不依赖 PR 作者的叙述）：
+
+| `@deepseek-ai/dsh-jobs` | `JobSpec.owner` | `readAt` |
+| --- | --- | --- |
+| 0.1.6-alpha.1（npm 发布物 `lib/types/types.d.ts:55`） | `Agent` | 无 |
+| 0.1.7-alpha.1（`lib/types/types.d.ts:128`） | `SessionId` | 有 |
+| 0.1.7-rc.2 / 0.2.0-rc.2 源码（`packages/jobs/jobs/src/types.ts:137`） | `SessionId` | 有（`jobs/src/index.ts:148`） |
+
+`jobs-local` 的 `resolveOwner`（`packages/jobs/jobs-local/src/index.ts:357-367`）把 `spec.owner` 当 session id 传给 `agents.get(...)`，取不到即抛 `session "${session}" has no live agent`。插件传的是 `exec.agent` 对象，字符串化后是 `"[object Object]"` → **0.1.7+ 宿主上 `mode:"async"` 直接失败**，而 CLAUDE.md 契约 5 规定视频/音频必须 async。`Agent.id` 就是 `SessionId`（`packages/core/agent/src/index.ts:212`，注册表按 `agent.id` 存，同文件:538），故 `jobsOwner` 传 `agent.id` 正确；`readAt` 作为特征探测成立（与 owner 改 SessionId 同批引入）。
+
+这条正是离线审计到不了的「功能兼容」层：桩宿主能证明注册接缝，证明不了 jobs 语义。**结论：两条分支互补** —— 本分支强在审计/类型基线/接缝/文档，PR #14 强在真机端到端与这个功能修复。
+
+
+## 装机后未挂载：`cordis.patch.yml` 的 `name` 是模块说明符
+
+**症状**（装机 + 重启后）：dshmarket 持续提示「已进入 profile bundle 层但本次未能热挂载；重启后生效」，`/comfyui/*` 路由 404，设置页无 ComfyUI 节。**重启不会好**。
+
+排查顺序与实测结论：
+
+1. **peer 闸门是过的**。宿主 `evaluatePluginCompatibility`（`dsh-app-boot/lib/index.js:286`）只检查 `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` 这几个 peer，对 `getDshRuntimeVersion()`（同文件 :271，= app-boot 自身版本 = 装机版本）用 `{includePrerelease:true}` 比较；被跳过的 bundle 会进 `skippedBundles` 并由 `reportSkippedBundles`（:515）打 `dsh: skipping profile bundle "<name>": <reason>` 到 stderr。用宿主自己的导出函数复现：`loadProfileDirectory("dsh", ~/.dsh/profiles/desktop, <app>/package.json, {userLayer:false})` → **22 层，0 skipped**，我们的层在栈里，`patchPaths` 指向安装目录里的 `cordis.patch.yml`。
+2. **真正断在模块解析**。cordis 加载器 `PluginEntry._init()`（`cordis-plugin-loader/lib/index.js:451`）执行 `exports = await this.parent.tree.import(this.options.name, ...)` —— 条目里的 `name` 就是要 import 的**包名**；失败只 `ctx.logger.error(error)` 后 `return`（:452-454），插件永不启动，UI 上就是那条热挂载提示。实测：在 profile 目录里 `require.resolve('dsh-comfyui')` → `MODULE_NOT_FOUND`，`require.resolve('@smallmj/dsh-comfyui')` → 正常解析。
+3. 所以 fork 改名后 patch 里残留的 `name: 'dsh-comfyui'` 让「层组合成功、模块 import 失败」。修法：`cordis.patch.yml` 的 `name` 改成 `@smallmj/dsh-comfyui`。**插件导出的 `name`（`src/index.ts:28`）保持 `dsh-comfyui` 不变** —— 那个才是插件身份（数据目录等），与条目的 `name` 不是一回事。
+
+**装机侧的 pnpm 陷阱**（改完包内容重装时会踩）：`file:` 依赖的 `resolution.integrity` 被 profile 的 `pnpm-lock.yaml` 钉住（`pnpm-lock.yaml:436`），`pnpm install --force` 与 `pnpm install --lockfile-only` + `pnpm install` **都继续用旧内容**，装出来的 `cordis.patch.yml` 还是旧的。有效做法：从 profile 的 `package.json` 里删掉该依赖 → `pnpm install`（`node_modules/@smallmj` 被移除）→ 原样加回 → `pnpm install`。
+
+**教训**：改包名必须同步改 `cordis.patch.yml`（CLAUDE.md 契约 17）。这条也是「功能兼容」层才暴露的问题——桩宿主与 peer 闸门都证明不了它。
 
 ## 复现命令
 
 ```sh
+# 加载冒烟接缝 + 既有离线自测
+npm run build:host && node scripts/test-host-compat.mjs
+for s in convert skillpack store-params transfer; do node scripts/test-$s.mjs; done
+
 # 装机宿主版本
 plutil -p "/Applications/DeepSeek Harness.app/Contents/Info.plist" | grep CFBundleShortVersionString
 
@@ -87,3 +144,8 @@ sed -n '61,88p' /Users/smallmj/deepseek-harness-0.2.0/packages/boot/app-boot/src
 # dshmarket 兼容性提示的数据源
 python3 -c "import json;print(json.dumps(json.load(open('/Users/smallmj/.dsh/profiles/desktop/.dsh-market/discovery-compatibility-v1.json'))['entries']['dsh-comfyui'],ensure_ascii=False,indent=2))"
 ```
+
+## 已知限制
+
+- 闸门断言里的比较器是**手写的**（`scripts/test-host-compat.mjs:31-97`），不是宿主的 semver：仓库根解析不到 `semver`（pnpm 严格布局），断言脚本必须零依赖。它只覆盖 `^x.y.z[-pre] || …` 这一种范围语法，遇到别的语法**抛错**而不是静默给出错误结论；已用真实 semver 7.8.5（`includePrerelease: true`）对 14 个版本 × 3 种范围写法做过等价性验证。**若将来 peer 语法改成 `>=`/`<` 混合，比较器会抛错——届时改断言，不要改比较器的语义。**
+- 桩宿主证明的是宿主边界，不是宿主本身（见待办 4 的清单）。

@@ -11,19 +11,20 @@
 <p align="center">Let the DeepSeek Harness agent smartly drive a local or remote ComfyUI to generate anything — with workflow and asset management panels, per-workflow skill packs, a companion skill and a same-origin media proxy.</p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/dsh-comfyui"><img src="https://img.shields.io/npm/v/dsh-comfyui" alt="npm version" /></a>
-  <a href="https://www.npmjs.com/package/dsh-comfyui"><img src="https://img.shields.io/npm/dm/dsh-comfyui" alt="npm downloads" /></a>
-  <img src="https://img.shields.io/npm/l/dsh-comfyui" alt="license" />
+  <a href="https://www.npmjs.com/package/@smallmj/dsh-comfyui"><img src="https://img.shields.io/npm/v/@smallmj%2Fdsh-comfyui" alt="npm version" /></a>
+  <img src="https://img.shields.io/npm/l/@smallmj%2Fdsh-comfyui" alt="license" />
 </p>
 
 > **Version pairing (pick the right dsh before installing, otherwise dshmarket shows a risk banner)**:
 >
-> | dsh-comfyui | Paired DeepSeek Harness | Notes |
+> | Plugin | Paired DeepSeek Harness | Notes |
 > | --- | --- | --- |
-> | **0.5.x (latest, `latest` tag)** | **>= 0.1.2** (incl. 0.1.5 / 0.1.6 / 0.1.7 prereleases) | From 0.5.3 the settings page works with dsh 0.1.7's settings model (saves apply live, no restart) |
-> | **0.3.x (beta line, `beta` tag)** | **0.1.1** | On older dsh versions stay on the 0.3.x line |
+> | **`@smallmj/dsh-comfyui` 0.5.x (this fork, `latest` tag)** | **>= 0.1.2** (incl. 0.1.5 / 0.1.6 / 0.1.7 prereleases) **and 0.2.x** (incl. 0.2.0-rc.2 and later prereleases) | From 0.5.3 the settings page works with dsh 0.1.7's settings model (saves apply live, no restart); from 0.5.5 the peer range admits dsh 0.2.x hosts, 0.1.x hosts are unaffected, and the 0.1.7+/0.2.x background-job owner contract is handled (`mode:"async"` fix, taken from upstream PR #14) |
+> | **`dsh-comfyui` 0.3.x (upstream beta line, `beta` tag)** | **0.1.1** | On older dsh versions stay on the upstream 0.3.x line |
 >
-> Install: `dsh plugin --profile web add dsh-comfyui` (latest 0.5.x) / `dsh plugin --profile web add dsh-comfyui@beta` (0.3.x for older hosts).
+> Install: `dsh plugin --profile web add @smallmj/dsh-comfyui` (latest 0.5.x) / `dsh plugin --profile web add dsh-comfyui@beta` (upstream 0.3.x for older hosts).
+>
+> This fork publishes independently from 0.5.5 and has **no** `beta` tag; the plugin's runtime identity (the `comfyui` namespace, the `~/.dsh/data/dsh-comfyui/` data dir, the preset package format id) is identical to upstream, so either package shares the same data.
 
 ## Features
 
@@ -80,9 +81,9 @@ The DH settings page gets a "ComfyUI" section: server address, API key env var n
 
 ```sh
 # web profile
-dsh plugin --profile web add dsh-comfyui
+dsh plugin --profile web add @smallmj/dsh-comfyui
 # desktop profile
-dsh plugin --profile desktop add dsh-comfyui
+dsh plugin --profile desktop add @smallmj/dsh-comfyui
 ```
 
 After restarting the app: a panel entry appears in the sidebar, a "ComfyUI" section in settings, and the agent gets all tools plus the companion skill right away.
