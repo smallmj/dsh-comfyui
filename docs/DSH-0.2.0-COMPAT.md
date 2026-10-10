@@ -76,7 +76,7 @@
 | 6 | 发自己的包（需改名，npm 发布权在上游）+ 给上游提 PR（就是第 1 条那一行） | ⬜ 未开始 |
 | 7 | 发版同步义务（`CLAUDE.md` §相关文档）：两份 README 版本配对表已同步；`src/skill.ts` 不含版本与宿主兼容表述，无需改动；`DEVELOPMENT.md` 版本表与时间线是本地文件，不入版本库 | ✅ 部分完成（DEVELOPMENT.md 由维护者本地更新） |
 
-**§排除的三个怀疑 中的三项**不得作为「修复」对象 —— 实测无害，改动只会引入风险。
+**「排除的三个怀疑」一节中的三项**不得作为「修复」对象 —— 实测无害，改动只会引入风险。
 
 ## 复现命令
 
@@ -98,3 +98,8 @@ sed -n '61,88p' /Users/smallmj/deepseek-harness-0.2.0/packages/boot/app-boot/src
 # dshmarket 兼容性提示的数据源
 python3 -c "import json;print(json.dumps(json.load(open('/Users/smallmj/.dsh/profiles/desktop/.dsh-market/discovery-compatibility-v1.json'))['entries']['dsh-comfyui'],ensure_ascii=False,indent=2))"
 ```
+
+## 已知限制
+
+- 闸门断言里的比较器是**手写的**（`scripts/test-host-compat.mjs:31-97`），不是宿主的 semver：仓库根解析不到 `semver`（pnpm 严格布局），断言脚本必须零依赖。它只覆盖 `^x.y.z[-pre] || …` 这一种范围语法，遇到别的语法**抛错**而不是静默给出错误结论；已用真实 semver 7.8.5（`includePrerelease: true`）对 14 个版本 × 3 种范围写法做过等价性验证。**若将来 peer 语法改成 `>=`/`<` 混合，比较器会抛错——届时改断言，不要改比较器的语义。**
+- 桩宿主证明的是宿主边界，不是宿主本身（见待办 4 的清单）。
